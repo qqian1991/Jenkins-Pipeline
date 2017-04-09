@@ -78,6 +78,7 @@ node('Docker-4') {
 				}
 				// 如果try部分执行失败
 				catch (err) {
+					println err
 					// 发送邮件拉取feature分支失败，需要开发或者QA检查原因，由开发组长重新拉取
 					emailext (
 						body: """
@@ -138,7 +139,8 @@ node('Docker-4') {
 						message: '是否开始部署开发环境?（相关开发有权限执行此步）',
 						ok: "同意进行开发环境部署",
 						parameters: [
-							string(defaultValue: 'DP-40', description: '部署环境', name: 'Dev_Env')
+							string(defaultValue: 'DP-40', description: '部署环境', name: 'Dev_Env'),
+							string(defaultValue: '/home/op/hjt', description: '部署路径', name: 'Dev_Deploy_Path'),
 						],
 						submitter: "${env.Dev_User_List}",
 						submitterParameter: 'Stage_Submitter_2'
@@ -146,16 +148,32 @@ node('Docker-4') {
 
 						env.Dev_Env = input_map_2["Dev_Env"]
 						env.Stage_Submitter_2 = input_map_2["Stage_Submitter_2"]
+						env.Dev_Deploy_Path = input_map_2["Dev_Deploy_Path"]
 
 						// 如果执行部署，则调用部署子任务，把需要的参数传入
-						build (
-							job: 'pipeline-web-deploy', 
+						def dev_build_step = build (
+							job: 'TODP-Web门户-源码构建部署-V2', 
 							parameters: [
-							string(name: 'Build_Branch', value: "${Feature_Branch_Name}"), 
-							string(name: 'Build_Config', value: "dev")
+							string(name: 'Build_Config', value: "dev"), 
+							string(name: 'Operation_Web_Deploy', value: 'yes'),
+							string(name: 'Operation_Web_Build_Branch', value: "origin/${env.Feature_Branch_Name}"), 
+							string(name: 'Home_Web_Deploy', value: 'yes'),
+							string(name: 'Home_Web_Build_Branch', value: "origin/${env.Feature_Branch_Name}"),
+							string(name: 'Auth_Deploy', value: 'no'),
+							string(name: 'Auth_Build_Branch', value: 'develop'),
+							string(name: 'Web_Deploy_Path', value: "${env.Dev_Deploy_Path}"), 
+							string(name: 'Web_Deploy_Node', value: "${env.Dev_Env}")
 							], 
-							quietPeriod: 3
+							quietPeriod: 3,
+							propagate: false
 						)
+
+						env.dev_build_result = dev_build_step.result
+						if ("${env.dev_build_result}".contains("FAILURE")) {
+							error "开发环境部署失败"
+						}else{
+							echo "开发环境部署任务成功"
+						}
 
 						// 邮件通知其他开发，开发环境刚刚被部署过，并且邮件说明部署人
 						emailext (
@@ -218,6 +236,7 @@ node('Docker-4') {
 					}
 				}
 				catch (err) {
+					println err
 					emailext (
 						body: """
 						<p>开发环境部署失败，可能原因：<p>
@@ -445,6 +464,7 @@ node('Docker-4') {
 
 				}
 				catch (err) {
+					println err
 					emailext (
 						body: """
 						<p>拉取Release分支${env.Release_Branch_Name}失败，可能原因：<p>
@@ -502,7 +522,8 @@ node('Docker-4') {
 						message: '是否开始部署测试环境?（QA有权限执行此步）',
 						ok: "同意进行测试环境部署",
 						parameters: [
-							string(defaultValue: 'QA-54', description: '部署环境', name: 'QA_Env')
+							string(defaultValue: 'QA-54', description: '部署环境', name: 'QA_Env'),
+							string(defaultValue: '/usr/bdusr01/qa', description: '部署路径', name: 'QA_Deploy_Path'),
 						],
 						submitter: "${env.QA_User_List}",
 						submitterParameter: 'Stage_Submitter_2'
@@ -510,16 +531,32 @@ node('Docker-4') {
 
 						env.QA_Env = input_map_2["QA_Env"]
 						env.Stage_Submitter_2 = input_map_2["Stage_Submitter_2"]
+						env.QA_Deploy_Path = input_map_2["QA_Deploy_Path"]
 
 						// 如果执行部署，则调用部署子任务，把需要的参数传入
-						build (
-							job: 'pipeline-web-deploy', 
+						def test_build_step = build (
+							job: 'TODP-Web门户-源码构建部署-V2', 
 							parameters: [
-							string(name: 'Build_Branch', value: "${Release_Branch_Name}"), 
-							string(name: 'Build_Config', value: "test")
+							string(name: 'Build_Config', value: "test"), 
+							string(name: 'Operation_Web_Deploy', value: 'yes'),
+							string(name: 'Operation_Web_Build_Branch', value: "origin/${env.Release_Branch_Name}"), 
+							string(name: 'Home_Web_Deploy', value: 'yes'),
+							string(name: 'Home_Web_Build_Branch', value: "origin/${env.Release_Branch_Name}"),
+							string(name: 'Auth_Deploy', value: 'no'),
+							string(name: 'Auth_Build_Branch', value: 'develop'),
+							string(name: 'Web_Deploy_Path', value: "${env.QA_Deploy_Path}"), 
+							string(name: 'Web_Deploy_Node', value: "${env.QA_Env}")
 							], 
-							quietPeriod: 3
+							quietPeriod: 3,
+							propagate: false
 						)
+
+						env.test_build_result = test_build_step.result
+						if ("${env.test_build_result}".contains("FAILURE")) {
+							error "测试环境部署失败"
+						}else{
+							echo "测试环境部署任务成功"
+						}
 
 						// 邮件通知其他测试，测试环境刚刚被部署过，并且邮件说明部署人
 						emailext (
@@ -589,6 +626,7 @@ node('Docker-4') {
 					}
 				}
 				catch (err) {
+					println err
 					emailext (
 						body: """
 						<p>测试环境部署失败，可能原因：<p>
@@ -650,6 +688,7 @@ node('Docker-4') {
 					true
 				}
 				catch (err) {
+					println err
 					emailext (
 						body: """
 						<p>合并release分支${env.Release_Branch_Name}到develop分支失败</p>
@@ -715,6 +754,7 @@ node('Docker-4') {
 					true
 				}
 				catch (err) {
+					println err
 					emailext (
 						body: """
 						<p>合并release分支${env.Release_Branch_Name}到master分支失败</p>
@@ -733,6 +773,73 @@ node('Docker-4') {
 						""",
 						to: "${env.Dev_Mail_List}",
 						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}任务-合并${env.Release_Branch_Name}分支到master分支失败",
+						attachLog: true
+					)
+
+					input (
+						message: "出错，查明原因后，再次尝试该步骤?"
+					)
+					false
+				}
+			}
+
+			waitUntil {
+				try {
+
+	                def input_map = input(
+					message: "${env.Release_Branch_Name}已合并到master分支，请打上大版本tag?（仅开发组长有权限执行此步）",
+					ok: "同意给master分支打tag",
+					parameters: [
+						string(defaultValue: 'v*.0.0', description: 'tag用于标记上线的大版本，类似v1.0.0的格式', name: 'Major_Tag_Name'),
+					],
+					submitter: "${env.Dev_Leader_User}",
+					submitterParameter: 'Stage_Submitter'
+					)
+					env.Major_Tag_Name = input_map["Major_Tag_Name"]	
+					env.Stage_Submitter = input_map["Stage_Submitter"]
+
+					sh 'echo "${Major_Tag_Name}" > ../Major_Tag_Name.txt'
+
+					checkout([
+						$class: 'GitSCM', 
+						branches: [[name: '*/develop']], 		
+						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL}"]],
+						extensions: [[$class: 'WipeWorkspace']]
+					])
+
+					sh '''
+					echo "在master分支打大版本tag"
+					cd ${WORKSPACE}
+					git checkout master
+					git pull origin master
+					git tag -a ${Major_Tag_Name} -m "Add major tag in master branch for product launch"
+					git push origin ${Major_Tag_Name} 
+					git show ${Major_Tag_Name} 
+					'''
+
+					emailext (
+						body: """
+						<p>在master分支打tag - ${env.Major_Tag_Name}成功</p>
+						<p>添加tag用户：${env.Stage_Submitter}</p>
+						""",
+						to: "${env.Dev_Mail_List}",
+						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-在master分支打tag - ${env.Major_Tag_Name}成功",
+						attachLog: true
+					)
+					true
+				}
+				catch (err) {
+					println err
+					emailext (
+						body: """
+						<p>在master分支打tag - ${env.Major_Tag_Name}失败，可能原因</p>
+						<p>1. ${env.Major_Tag_Name}标签已经存在，请检查，并且输入正确的tag标签名称</p>
+						<p>2. 所运行的Jenkins节点无法连接Gitlab项目或者SSH验证失败，请和QA组联系</p>
+						<p>定位原因请参照详细日志:  <a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
+						<p>查明原因后请开发组长重新在Jenkins Pipeline页面重新打tag <a href='${env.JOB_URL}workflow-stage'>${env.JOB_NAME} (pipeline)</a> ！</p>
+						""",
+						to: "${env.Dev_Mail_List}",
+						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}任务-在master分支打tag - ${env.Major_Tag_Name}失败",
 						attachLog: true
 					)
 
@@ -787,6 +894,7 @@ node('Docker-4') {
 					true
 				}
 				catch (err) {
+					println err
 					emailext (
 						body: """
 						<p>删除release分支${env.Release_Branch_Name}失败</p>
@@ -823,7 +931,8 @@ node('Docker-4') {
 					message: '是否使用master分支部署用于冒烟测试的环境?（QA有权限执行此步）',
 					ok: "同意进行测试环境部署",
 					parameters: [
-						string(defaultValue: 'QA-54', description: '部署环境', name: 'QA_Env')
+						string(defaultValue: 'QA-54', description: '部署环境', name: 'QA_Env'),
+						string(defaultValue: '/usr/bdusr01/qa', description: '部署路径', name: 'QA_Deploy_Path'),
 					],
 					submitter: "${env.QA_User_List}",
 					submitterParameter: 'Stage_Submitter'
@@ -831,16 +940,32 @@ node('Docker-4') {
 
 					env.QA_Env = input_map["QA_Env"]
 					env.Stage_Submitter = input_map["Stage_Submitter"]
+					env.QA_Deploy_Path = input_map["QA_Deploy_Path"]
 
 					// 如果执行部署，则调用部署子任务，把需要的参数传入
-					build (
-						job: 'pipeline-web-deploy', 
+					def smoke_build_step = build (
+						job: 'TODP-Web门户-源码构建部署-V2', 
 						parameters: [
-						string(name: 'Build_Branch', value: "master"), 
-						string(name: 'Build_Config', value: "test")
+						string(name: 'Build_Config', value: "test"), 
+						string(name: 'Operation_Web_Deploy', value: 'yes'),
+						string(name: 'Operation_Web_Build_Branch', value: "origin/master"), 
+						string(name: 'Home_Web_Deploy', value: 'yes'),
+						string(name: 'Home_Web_Build_Branch', value: "origin/master"),
+						string(name: 'Auth_Deploy', value: 'no'),
+						string(name: 'Auth_Build_Branch', value: 'develop'),
+						string(name: 'Web_Deploy_Path', value: "${env.QA_Deploy_Path}"), 
+						string(name: 'Web_Deploy_Node', value: "${env.QA_Env}")
 						], 
-						quietPeriod: 3
+						quietPeriod: 3,
+						propagate: false
 					)
+
+					env.smoke_build_result = smoke_build_step.result
+					if ("${env.smoke_build_result}".contains("FAILURE")) {
+						error "冒烟测试环境部署失败"
+					}else{
+						echo "冒烟测试环境部署任务成功"
+					}
 
 					// 邮件通知其他测试，测试环境刚刚被部署过，并且邮件说明部署人
 					emailext (
@@ -906,6 +1031,7 @@ node('Docker-4') {
 					}
 				}
 				catch (err) {
+					println err
 					emailext (
 						body: """
 						<p>拉取master分支部署冒烟测试环境失败，可能原因：<p>
@@ -928,6 +1054,23 @@ node('Docker-4') {
 		}
 		else {
 			echo "Skip Stage6"
+		}
+	}
+
+}
+
+node('Prod-97.11') {
+
+	stage("Stage7 - 生产环境测试"){
+		if ("${params.Action}" ==~ /1-.*|2-.*|3-.*|4-.*|5-.*|6-.*|7-.*/) {
+			sh '''
+			#!/bin/bash
+			set -ex
+			echo ${WORKSPACE}
+			'''
+		}
+		else {
+			echo "Skip Stage7"
 		}
 	}
 
