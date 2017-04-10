@@ -1082,7 +1082,7 @@ def Stage7() {
 				message: '是否使用master分支在生产环境编译打包?（开发组长有权限执行此步）',
 				ok: "同意在生产环境编译打包",
 				parameters: [
-					string(defaultValue: '/home/hue/QA', description: '生产环境可执行包的生成位置', name: 'Package_Path')
+					string(defaultValue: '/usr/op/QA', description: '生产环境可执行包的生成位置', name: 'Package_Path')
 				],
 				submitter: "${env.Dev_Leader_User}",
 				submitterParameter: 'Stage_Submitter'
@@ -1098,14 +1098,22 @@ def Stage7() {
 				backup_dir=todp-web-backup-${backup_time}
 				home_war_target=${WORKSPACE}/todp-web/todp-home-web/target
 				home_war_name=todp-home-web.war
-				echo "Workspacke is: ${WORKSPACE}"
-				
+				operation_war_target=${WORKSPACE}/todp-web/todp-operation-web/target
+				operation_war_name=todp-operation-web.war
+				echo "WORKSPACE is: ${WORKSPACE}"
+				echo "backup_dir is: ${backup_dir}"
+				echo "home_war_target is: ${home_war_target}"
+				echo "home_war_name is: ${home_war_name}"
+				echo "operation_war_target is: ${operation_war_target}"
+				echo "operation_war_name is: ${operation_war_name}"
+
 				# check related dir
 				if [ ! -f "${Package_Path}" ];then
 					mkdir -p ${Package_Path}
 				fi
-				
-				echo "Package_Path is: ${Package_Path} and start backup old war files"
+				echo "Package_Path is: ${Package_Path}"
+
+				echo "start backup old war files"
 				cd ${Package_Path}
 				if [ ! -f "${backup_dir}" ];then
 					mkdir -p ${backup_dir}
@@ -1114,6 +1122,14 @@ def Stage7() {
 				if [ -f "${home_war_name}" ];then
 					mv ${home_war_name} ${backup_dir}/
 				fi 
+
+				if [ -f "${operation_war_name}" ];then
+					mv ${operation_war_name} ${backup_dir}/
+				fi 
+
+				cp ${home_war_target}/${home_war_name} ${Package_Path}/
+				cp ${operation_war_target}/${operation_war_name} ${Package_Path}/
+				ls -al
 				'''
 
 				emailext (

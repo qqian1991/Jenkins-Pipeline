@@ -24,11 +24,7 @@ node('Docker-4') {
 		Stage6()
 	}
 
-}
-
-node('Prod-97.11') {
-
-	stage("Stage7 - 生产环境测试"){
+	stage("Stage7 - 生产环境测试") {
 		Stage7()
 	}
 
@@ -39,7 +35,6 @@ def Stage1() {
 	if ("${params.Action}" ==~ /1-.*/) {
 		waitUntil {
 			try {
-
 				// 发送邮件通知开发组长拉取feature分支
 				emailext (
 					body: """
@@ -71,7 +66,7 @@ def Stage1() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])	
 
@@ -103,7 +98,7 @@ def Stage1() {
 					<p>请开发成员用个人账户登录Jenkins Pipeline页面，部署开发环境进行后续开发和部署</p>
 					<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
 					""",
-					to: "${env.Dev_Mail_List}",
+					to: "${Dev_Mail_List},${PM_Mail_List},${QA_Mail_List}",
 					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-拉取Feature分支成功",
 					attachLog: true
 				)
@@ -143,6 +138,7 @@ def Stage1() {
 		sh 'echo "${Feature_Exist}" > ../Feature_Branch_Name.txt'
 	}
 }
+
 
 def Stage2() {
 	if ("${params.Action}" ==~ /1-.*|2-.*/) {
@@ -226,45 +222,55 @@ def Stage2() {
 					false
 				}
 				else {
-					// 邮件提示开发组长进行确认和分支操作
+					// 邮件提示开发PM确认开发完成
 					emailext (
 						body: """
-						<p>开发阶段完成，由开发组长进行确认是否完成，以及执行如下分支操作：</p>
-						<p> 1)合并feature分支（如有冲突，请手动解决冲突后再运行）</p>
-						<p> 2)删除feature分支</p>
-						<p> 3)拉取release分支以及移交QA</p>
-						<p>请开发组长用个人账户登录Jenkins Pipeline页面按照提示执行步骤</p>
+						<p>开发阶段完成，由PM进行确认是否完成，才可进行后续分支操作</p>
+						<p>请PM用个人账户登录Jenkins Pipeline页面按照提示执行步骤</p>
 						<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
 						""",
-						to: "${Dev_Mail_List}",
-						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}任务-开发环境部署完成，等待开发组长确认以及进行分支操作",
+						to: "${Dev_Mail_List},${PM_Mail_List},${QA_Mail_List}",
+						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}任务-开发阶段完成，等待PM进行确认",
 						attachLog: true
 					)
 
-					//组长确认开发完成步骤
+					//PM确认开发完成步骤
 	                env.Dev_Confirm = input(
-					message: '开发组长确认开发阶段是否完成?（仅开发组长有权限执行此步）',
-					ok: "下一阶段",
-					submitter: "${env.Dev_Leader_User}",
+					message: 'PM确认开发阶段是否完成?（仅PM有权限执行此步）',
+					ok: "下一步",
+					submitter: "${env.PM_Leader_User}",
 					parameters: [
-					choice(choices: "Yes\nNo\n", description: '开发组长确认开发是否完成，没完成请选择No，返回开发部署和自测流程!', name: 'Dev_Confirm')
+					choice(choices: "Yes\nNo\n", description: 'PM确认开发是否完成，没完成请选择No，返回开发部署和自测流程!', name: 'Dev_Confirm')
 					],
 					)
 
 					if (!"${env.Dev_Confirm}".contains("Yes")) {
-						//如果组长不通过，退回开发继续开发部署
+						//如果PM不通过，退回开发继续开发部署
 						emailext (
 							body: """
-							<p>开发组长不通过开发完成，请相关开发重新开发部署和自测<p>
+							<p>PM不通过开发完成，请相关开发重新开发部署和自测<p>
 							<p>需要重新部署在Jenkins Pipeline视图继续执行步骤 <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}${env.JOB_NAME} (pipeline)</a> ！！！</p>
 							""",
 							to: "${env.Dev_Mail_List}",
-							subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-开发组长不通过开发完成，请相关开发重新开发部署和自测",
+							subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-PM不通过开发完成，请相关开发重新开发部署和自测",
 							attachLog: true
 						)
 						false
 					}
 					else {
+						emailext (
+							body: """
+							<p>PM已经确认开发阶段完成，请开发组长执行如下分支操作：</p>
+							<p> 1)合并feature分支（如有冲突，请手动解决冲突后再运行）</p>
+							<p> 2)删除feature分支</p>
+							<p> 3)拉取release分支以及移交QA</p>
+							<p>请开发组长用个人账户登录Jenkins Pipeline页面按照提示执行步骤</p>
+							<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
+							""",
+							to: "${Dev_Mail_List},${PM_Mail_List},${QA_Mail_List}",
+							subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}任务-开发阶段完成，等待开发组长进行分支操作",
+							attachLog: true
+						)
 						true
 					}
 				}
@@ -297,6 +303,7 @@ def Stage2() {
 	}
 }
 
+
 def Stage3() {
 	if ("${params.Action}" ==~ /1-.*|2-.*|3-.*/) {
 		def Feature_Branch_Name = readFile '../Feature_Branch_Name.txt'
@@ -314,7 +321,7 @@ def Stage3() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -335,7 +342,7 @@ def Stage3() {
 					<p>合并feature分支${env.Feature_Branch_Name}到develop分支成功</p>
 					<p>代码合并触发用户：${env.Stage_Submitter}</p>
 					""",
-					to: "${env.Dev_Mail_List}",
+					to: "${Dev_Mail_List},${PM_Mail_List},${QA_Mail_List}",
 					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}任务-合并${env.Feature_Branch_Name}分支到develop分支成功",
 					attachLog: true
 				)
@@ -394,7 +401,7 @@ def Stage3() {
 					checkout([
 						$class: 'GitSCM', 
 						branches: [[name: '*/develop']], 		
-						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL}"]],
+						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
 						extensions: [[$class: 'WipeWorkspace']]
 					])
 
@@ -412,7 +419,7 @@ def Stage3() {
 						<p>删除feature分支${env.Feature_Branch_Name}成功</p>
 						<p>代码删除触发用户：${env.Stage_Submitter}</p>
 						""",
-						to: "${env.Dev_Mail_List}",
+						to: "${Dev_Mail_List},${PM_Mail_List},${QA_Mail_List}",
 						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-删除${env.Feature_Branch_Name}分支成功",
 						attachLog: true
 					)
@@ -461,7 +468,7 @@ def Stage3() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -706,7 +713,7 @@ def Stage5() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -766,7 +773,7 @@ def Stage5() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -785,7 +792,7 @@ def Stage5() {
 					<p>合并release分支${env.Release_Branch_Name}到develop分支和master分支成功</p>
 					<p>代码合并触发用户：${env.Stage_Submitter}</p>
 					""",
-					to: "${env.Dev_Mail_List}",
+					to: "${env.Dev_Mail_List},${env.QA_Mail_List},${env.PM_Mail_List}",
 					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-合并${env.Release_Branch_Name}分支到develop分支和master分支成功",
 					attachLog: true
 				)
@@ -841,7 +848,7 @@ def Stage5() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -861,7 +868,7 @@ def Stage5() {
 					<p>在master分支打tag - ${env.Major_Tag_Name}成功</p>
 					<p>添加tag用户：${env.Stage_Submitter}</p>
 					""",
-					to: "${env.Dev_Mail_List}",
+					to: "${env.Dev_Mail_List},${env.QA_Mail_List},${env.PM_Mail_List}",
 					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-在master分支打tag - ${env.Major_Tag_Name}成功",
 					attachLog: true
 				)
@@ -908,7 +915,7 @@ def Stage5() {
 					checkout([
 						$class: 'GitSCM', 
 						branches: [[name: '*/develop']], 		
-						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL}"]],
+						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
 						extensions: [[$class: 'WipeWorkspace']]
 					])
 
@@ -926,7 +933,7 @@ def Stage5() {
 						<p>删除release分支${env.Release_Branch_Name}成功</p>
 						<p>代码删除用户：${env.Stage_Submitter}</p>
 						""",
-						to: "${env.Dev_Mail_List}",
+						to: "${env.Dev_Mail_List},${env.QA_Mail_List},${env.PM_Mail_List}",
 						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-删除${env.Release_Branch_Name}分支成功",
 						attachLog: true
 					)
@@ -1079,7 +1086,7 @@ def Stage6() {
 					<p>定位原因请参照详细日志:  <a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
 					<p>查明原因后请相关人员重新在Jenkins Pipeline视图继续执行步骤 <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}${env.JOB_NAME} (pipeline)</a> ！！！</p>
 					""",
-					to: "${env.Dev_Mail_List}",
+					to: "${env.QA_Mail_List}",
 					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-拉取master分支部署冒烟测试环境失败",
 					attachLog: true
 				)
@@ -1114,37 +1121,23 @@ def Stage7() {
 				env.Stage_Submitter = input_map["Stage_Submitter"]
 				env.Package_Path = input_map["Package_Path"]
 
-				git (
-					credentialsId: 'Gitlab-jenkins-account', 
-					url: 'http://10.142.78.33:8080/DataPlatform/todp-one.git'
+
+				def prod_build_step = build (
+					job: 'TODP-门户生产部署子任务', 
+					parameters: [
+					string(name: 'GitLab_URL_HTTP', value: "${env.GitLab_URL_HTTP}"), 
+					string(name: 'Package_Path', value: "${env.Package_Path}")
+					], 
+					quietPeriod: 3,
+					propagate: false
 				)
 
-				withMaven(jdk: 'JDK1.8', maven: 'MVN3') {
-					sh "mvn clean package"
+				env.prod_build_result = prod_build_step.result
+				if ("${env.prod_build_result}".contains("FAILURE")) {
+					error "生产环境部署失败"
+				}else{
+					echo "生产环境部署任务成功"
 				}
-
-				sh '''
-				#!/bin/bash
-				set -ex
-				backup_time=`date +%Y-%m-%d-%H`
-				backup_dir=todp-web-backup-${backup_time}
-				home-web-war=${WORKSPACE}/todp-web/todp-home-web/target/todp-home-web.war
-				operation-web-war=${WORKSPACE}/todp-web/todp-operation-web/target/todp-operation-web.war
-				echo "Workspacke is: ${WORKSPACE}"
-
-				# check related dir
-				if [ ! -f "${Package_Path}" ];then
-					mkdir -p ${Package_Path}
-				fi
-
-				echo "Package_Path is: ${Package_Path} and start backup old war files"
-				cd ${Package_Path}
-				mkdir ${backup_dir}
-				mv *.war ${backup_dir}
-
-				cp ${home-web-war} ${Package_Path}/
-				cp ${operation-web-war } ${Package_Path}/
-				'''
 
 				emailext (
 					body: """
