@@ -1053,7 +1053,7 @@ node('Docker-4') {
 			}
 		}
 		else {
-			echo "Skip Stage6"
+			echo "Skip Stage6" 
 		}
 	}
 
