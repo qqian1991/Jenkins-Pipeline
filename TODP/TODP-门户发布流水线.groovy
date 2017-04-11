@@ -310,6 +310,22 @@ def Stage3() {
 		env.Feature_Branch_Name = Feature_Branch_Name.trim()
 			
 		waitUntil {
+
+			emailext (
+				body: """
+				<p>PM已经确认开发阶段完成，请开发组长执行如下分支操作：</p>
+				<p> 1)合并feature分支（如有冲突，请手动解决冲突后再运行）</p>
+				<p> 2)删除feature分支</p>
+				<p> 3)拉取release分支以及移交QA</p>
+				<p>请开发组长用个人账户登录Jenkins Pipeline页面按照提示执行步骤</p>
+				<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
+				""",
+				to: "${Dev_Mail_List},${PM_Mail_List},${QA_Mail_List}",
+				subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}任务-开发阶段完成，等待开发组长进行分支操作",
+				attachLog: true
+			)
+
+			
 			try {
 				env.Stage_Submitter = input(
 				message: "是否将${env.Feature_Branch_Name}分支合并到develop分支?（仅开发组长有权限执行此步）",
