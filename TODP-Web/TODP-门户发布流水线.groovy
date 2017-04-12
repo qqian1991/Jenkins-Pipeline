@@ -24,7 +24,7 @@ node('Docker-4') {
 		Stage6()
 	}
 
-	stage("Stage7 - 生产环境测试") {
+	stage("Stage7 - 生产环境构建打包") {
 		Stage7()
 	}
 
@@ -282,7 +282,8 @@ def Stage2() {
 					<p>开发环境部署失败，可能原因：<p>
 					<p> 1)构建失败</p>
 					<p> 2)服务启动失败</p>
-					<p>定位原因请参照详细日志:  <a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
+					<p>定位原因请参照详细日志（查看具体部署日志需要从流水线日志跳转到部署子任务查看具体日志）: </p>
+					<p><a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
 					<p>查明原因后请相关人员重新在Jenkins Pipeline页面继续重新部署 <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}${env.JOB_NAME} (pipeline)</a> ！！！</p>
 					""",
 					to: "${env.Dev_Mail_List}",
@@ -691,7 +692,8 @@ def Stage4() {
 					<p>测试环境部署失败，可能原因：<p>
 					<p> 1)构建失败</p>
 					<p> 2)服务启动失败</p>
-					<p>定位原因请参照详细日志:  <a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
+					<p>定位原因请参照详细日志（查看具体部署日志需要从流水线日志跳转到部署子任务查看具体日志）: </p>
+					<p><a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
 					<p>查明原因后请相关测试人员重新在Jenkins Pipeline页面继续重新部署 <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}${env.JOB_NAME} (pipeline)</a> ！！！</p>
 					""",
 					to: "${env.QA_Mail_List}",
@@ -1099,7 +1101,8 @@ def Stage6() {
 					<p>拉取master分支部署冒烟测试环境失败，可能原因：<p>
 					<p> 1)构建失败</p>
 					<p> 2)服务启动失败</p>
-					<p>定位原因请参照详细日志:  <a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
+					<p>定位原因请参照详细日志（查看具体部署日志需要从流水线日志跳转到部署子任务查看具体日志）: </p>
+					<p><a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
 					<p>查明原因后请相关人员重新在Jenkins Pipeline视图继续执行步骤 <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}${env.JOB_NAME} (pipeline)</a> ！！！</p>
 					""",
 					to: "${env.QA_Mail_List}",

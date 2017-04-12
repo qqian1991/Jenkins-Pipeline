@@ -62,7 +62,7 @@ def Stage1() {
 				// 把Feature_Branch_Name写入文件，用于其他Stage读取该变量					
 				sh 'echo "${Feature_Branch_Name}" > ../Feature_Branch_Name.txt'
 
-				// 拉取git源码
+				// 拉取git源码(SSH方式，该执行节点的key需要添加到相应gitlab项目中，便于下面shell指令无交互执行)
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
@@ -108,6 +108,7 @@ def Stage1() {
 			}
 			// 如果try部分执行失败
 			catch (err) {
+				// 打印错误
 				println err
 				// 发送邮件拉取feature分支失败，需要开发或者QA检查原因，由开发组长重新拉取
 				emailext (
@@ -138,7 +139,6 @@ def Stage1() {
 		sh 'echo "${Feature_Exist}" > ../Feature_Branch_Name.txt'
 	}
 }
-
 
 def Stage2() {
 	if ("${params.Action}" ==~ /1-.*|2-.*/) {
@@ -246,6 +246,7 @@ def Stage2() {
 					],
 					)
 
+	                // PM选择判断分支
 					if (!"${env.Dev_Confirm}".contains("Yes")) {
 						//如果PM不通过，退回开发继续开发部署
 						emailext (
@@ -260,6 +261,7 @@ def Stage2() {
 						false
 					}
 					else {
+						//PM确认，通知其他人
 						emailext (
 							body: """
 							<p>PM已经确认开发阶段完成，请开发组长执行如下分支操作：</p>
@@ -279,12 +281,14 @@ def Stage2() {
 			}
 			catch (err) {
 				println err
+				//部署子任务失败，邮件提醒
 				emailext (
 					body: """
 					<p>开发环境部署失败，可能原因：<p>
 					<p> 1)构建失败</p>
 					<p> 2)服务启动失败</p>
-					<p>定位原因请参照详细日志:  <a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
+					<p>定位原因请参照详细日志（查看具体部署日志需要从流水线日志跳转到部署子任务查看具体日志）: </p>
+					<p><a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
 					<p>查明原因后请相关人员重新在Jenkins Pipeline页面继续重新部署 <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}${env.JOB_NAME} (pipeline)</a> ！！！</p>
 					""",
 					to: "${env.Dev_Mail_List}",
@@ -310,9 +314,8 @@ def Stage3() {
 	if ("${params.Action}" ==~ /1-.*|2-.*|3-.*/) {
 		def Feature_Branch_Name = readFile '../Feature_Branch_Name.txt'
 		env.Feature_Branch_Name = Feature_Branch_Name.trim()
-			
 
-
+		// PM确认开发完成，还需要开发组长对分支进行操作，才能正式移交QA
 		emailext (
 			body: """
 			<p>PM已经确认开发阶段完成，请开发组长执行如下分支操作：</p>
@@ -496,6 +499,7 @@ def Stage4() {
 					false
 				}
 				else {
+					// QA组长确认验收测试是否完成
 					emailext (
 						body: """
 						<p>测试完成验收测试，请测试组长进行确认</p>
@@ -517,6 +521,7 @@ def Stage4() {
 					)
 
 					if (!"${env.QA_Confirm}".contains("Yes")) {
+						// 没完成，通知继续测试
 						emailext (
 							body: """
 							<p>测试组长不通过验收测试完成，请相关测试重新开发部署和自测<p>
@@ -529,6 +534,7 @@ def Stage4() {
 						false
 					}
 					else {
+						// 完成，通知开发组长对分支进行相应操作
 						emailext (
 							body: """
 							<p>QA验收测试已经完成，请开发组长对分支进行相应操作，用来准备上线</p>
@@ -548,12 +554,14 @@ def Stage4() {
 			}
 			catch (err) {
 				println err
+				// 测试环境部署失败，通知大家查看原因
 				emailext (
 					body: """
 					<p>测试环境部署失败，可能原因：<p>
 					<p> 1)构建失败</p>
 					<p> 2)服务启动失败</p>
-					<p>定位原因请参照详细日志:  <a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
+					<p>定位原因请参照详细日志（查看具体部署日志需要从流水线日志跳转到部署子任务查看具体日志）: </p>
+					<p><a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
 					<p>查明原因后请相关测试人员重新在Jenkins Pipeline页面继续重新部署 <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}${env.JOB_NAME} (pipeline)</a> ！！！</p>
 					""",
 					to: "${env.QA_Mail_List}",
@@ -580,6 +588,7 @@ def Stage5() {
 		env.Release_Branch_Name = Release_Branch_Name.trim()
 
 		waitUntil {
+			//开发组长进行合并release到develop
 			try {
 				env.Stage_Submitter = input(
 				message: "是否将${env.Release_Branch_Name}分支合并到develop分支?（仅开发组长有权限执行此步）",
@@ -640,6 +649,7 @@ def Stage5() {
 		}
 
 		waitUntil {
+			//开发组长进行合并release到master
 			try {
 				env.Stage_Submitter = input(
 				message: "是否将${env.Release_Branch_Name}分支合并到master分支?（仅开发组长有权限执行此步）",
@@ -707,6 +717,7 @@ def Stage5() {
 		}
 
 		waitUntil {
+			//开发组长进行在master打大版本tag
 			try {
 
                 def input_map = input(
@@ -775,6 +786,7 @@ def Stage5() {
 		}
 
 		waitUntil {
+			//开发组长进行删除release分支
 			try {
 				def input_map = input(
 				message: "合并成功，是否删除该${env.Release_Branch_Name}分支?（仅开发组长有权限执行此步）",
@@ -912,6 +924,7 @@ def Stage6() {
 				submitter: "${env.QA_User_List}"
 				)
 
+                // QA组长确认冒烟测试是否通过
                 env.QA_Confirm = input(
 				message: '测试组长确认冒烟测试是否完成?（仅测试组长有权限执行此步）',
 				ok: "完成，可以用于上线",
@@ -963,7 +976,8 @@ def Stage6() {
 					<p>拉取master分支部署冒烟测试环境失败，可能原因：<p>
 					<p> 1)构建失败</p>
 					<p> 2)服务启动失败</p>
-					<p>定位原因请参照详细日志:  <a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
+					<p>定位原因请参照详细日志（查看具体部署日志需要从流水线日志跳转到部署子任务查看具体日志）: </p>
+					<p><a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
 					<p>查明原因后请相关人员重新在Jenkins Pipeline视图继续执行步骤 <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}${env.JOB_NAME} (pipeline)</a> ！！！</p>
 					""",
 					to: "${env.QA_Mail_List}",
