@@ -17,20 +17,13 @@ node('Prod-96.35') {
 		sh '''
 		#!/bin/bash
 		set -ex
-
+		
+		export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.79.x86_64
 		backup_time=`date +%Y-%m-%d-%H`
-		backup_dir=todp-web-backup-${backup_time}
-		home_war_target=${WORKSPACE}/todp-web/todp-home-web/target
-		home_war_name=todp-home-web.war
-		operation_war_target=${WORKSPACE}/todp-web/todp-operation-web/target
-		operation_war_name=todp-operation-web.war
-
-		echo "WORKSPACE is: ${WORKSPACE}"
-		echo "backup_dir is: ${backup_dir}"
-		echo "home_war_target is: ${home_war_target}"
-		echo "home_war_name is: ${home_war_name}"
-		echo "operation_war_target is: ${operation_war_target}"
-		echo "operation_war_name is: ${operation_war_name}"
+		backup_dir=todp-auth-backup-${backup_time}
+		auth_target=${WORKSPACE}/todp-auth-web/target
+		auth_jar_name=todp-auth-web.jar
+		auth_tar_name=todp-auth-web-v1.tar.gz
 
 		# check related dir
 		if [ ! -f "${Package_Path}" ];then
@@ -44,16 +37,16 @@ node('Prod-96.35') {
 			mkdir -p ${backup_dir}
 		fi 
 
-		if [ -f "${home_war_name}" ];then
-			mv ${home_war_name} ${backup_dir}/
+		if [ -f "${auth_jar_name}" ];then
+			mv ${auth_jar_name} ${backup_dir}/
 		fi 
 
-		if [ -f "${operation_war_name}" ];then
-			mv ${operation_war_name} ${backup_dir}/
+		if [ -f "${auth_tar_name}" ];then
+			mv ${auth_tar_name} ${backup_dir}/
 		fi 
 
-		cp ${home_war_target}/${home_war_name} ${Package_Path}/
-		cp ${operation_war_target}/${operation_war_name} ${Package_Path}/
+		cp ${auth_target}/${auth_jar_name} ${Package_Path}/
+		cp ${auth_target}/${auth_tar_name} ${Package_Path}/
 		ls -al
 		'''
 	}

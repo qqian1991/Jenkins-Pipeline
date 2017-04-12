@@ -24,7 +24,7 @@ node('Docker-4') {
 		Stage6()
 	}
 
-	stage("Stage7 - 生产环境测试") {
+	stage("Stage7 - 生产环境构建打包") {
 		Stage7()
 	}
 
@@ -992,7 +992,7 @@ def Stage7() {
 				message: '是否使用master分支在生产环境编译打包?（开发组长有权限执行此步）',
 				ok: "同意在生产环境编译打包",
 				parameters: [
-					string(defaultValue: '/home/hue/QA', description: '生产环境可执行包的生成位置', name: 'Package_Path')
+					string(defaultValue: '/home/Wuguojun/test', description: '生产环境可执行包的生成位置', name: 'Package_Path')
 				],
 				submitter: "${env.Dev_Leader_User}",
 				submitterParameter: 'Stage_Submitter'
@@ -1003,7 +1003,7 @@ def Stage7() {
 
 
 				def prod_build_step = build (
-					job: 'TODP-门户生产部署子任务', 
+					job: 'TODP-权限生产部署子任务', 
 					parameters: [
 					string(name: 'GitLab_URL_HTTP', value: "${env.GitLab_URL_HTTP}"), 
 					string(name: 'Package_Path', value: "${env.Package_Path}")
