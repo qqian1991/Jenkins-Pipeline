@@ -8,7 +8,7 @@ node('Prod-97.11') {
 		])	
 
 		withMaven(jdk: 'JDK1.8', maven: 'MVN3') {
-			sh "mvn clean package -Pprod"
+			sh "mvn clean package -Pprod -DskipTests"
 		}
 	}
 

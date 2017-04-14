@@ -1,4 +1,4 @@
-node('Docker-4') {
+node('Docker-3') {
 
 	stage("Stage1 - 拉取Feature分支进行开发") {
 		Stage1()
@@ -60,7 +60,7 @@ def Stage1() {
 				env.Stage_Submitter = input_map["Stage_Submitter"]
 
 				// 把Feature_Branch_Name写入文件，用于其他Stage读取该变量					
-				sh 'echo "${Feature_Branch_Name}" > ../Feature_Branch_Name.txt'
+				sh 'echo "${Feature_Branch_Name}" > ../Auth_Feature_Branch_Name.txt'
 
 				// 拉取git源码(SSH方式，该执行节点的key需要添加到相应gitlab项目中，便于下面shell指令无交互执行)
 				checkout([
@@ -136,7 +136,7 @@ def Stage1() {
 	// 如果起始步骤不是1，则跳过该步骤，此时Feature_Branch_Name需要手动在jenkins的环境变量处设置
 	else {
 		echo "Skip Stage1"
-		sh 'echo "${Feature_Exist}" > ../Feature_Branch_Name.txt'
+		sh 'echo "${Feature_Exist}" > ../Auth_Feature_Branch_Name.txt'
 	}
 }
 
@@ -145,7 +145,7 @@ def Stage2() {
 		waitUntil {
 			try {
 				// 读取之前写文件的变量
-				def Feature_Branch_Name = readFile '../Feature_Branch_Name.txt'
+				def Feature_Branch_Name = readFile '../Auth_Feature_Branch_Name.txt'
 				env.Feature_Branch_Name = Feature_Branch_Name.trim()
 
 				//询问开发开发是否完成
@@ -312,7 +312,7 @@ def Stage2() {
 
 def Stage3() {
 	if ("${params.Action}" ==~ /1-.*|2-.*|3-.*/) {
-		def Feature_Branch_Name = readFile '../Feature_Branch_Name.txt'
+		def Feature_Branch_Name = readFile '../Auth_Feature_Branch_Name.txt'
 		env.Feature_Branch_Name = Feature_Branch_Name.trim()
 
 		// PM确认开发完成，还需要开发组长对分支进行操作，才能正式移交QA
@@ -342,7 +342,7 @@ def Stage3() {
 				env.Release_Branch_Name = input_map["Release_Branch_Name"]	
 				env.Stage_Submitter = input_map["Stage_Submitter"]
 
-				sh 'echo "${Release_Branch_Name}" > ../Release_Branch_Name.txt'
+				sh 'echo "${Release_Branch_Name}" > ../Auth_Release_Branch_Name.txt'
 
 				checkout([
 					$class: 'GitSCM', 
@@ -411,7 +411,7 @@ def Stage3() {
 	}
 	else {
 		echo "Skip Stage3"
-		sh 'echo "${Release_Exist}" > ../Release_Branch_Name.txt'
+		sh 'echo "${Release_Exist}" > ../Auth_Release_Branch_Name.txt'
 	}
 }
 
@@ -420,7 +420,7 @@ def Stage4() {
 		waitUntil {
 			try {
 				// 读取之前写文件的变量
-				def Release_Branch_Name = readFile '../Release_Branch_Name.txt'
+				def Release_Branch_Name = readFile '../Auth_Release_Branch_Name.txt'
 				env.Release_Branch_Name = Release_Branch_Name.trim()
 
 				//询问测试验收测试是否完成
@@ -584,7 +584,7 @@ def Stage4() {
 
 def Stage5() {
 	if ("${params.Action}" ==~ /1-.*|2-.*|3-.*|4-.*|5-.*/) {
-		def Release_Branch_Name = readFile '../Release_Branch_Name.txt'
+		def Release_Branch_Name = readFile '../Auth_Release_Branch_Name.txt'
 		env.Release_Branch_Name = Release_Branch_Name.trim()
 
 		waitUntil {
@@ -732,7 +732,7 @@ def Stage5() {
 				env.Major_Tag_Name = input_map["Major_Tag_Name"]	
 				env.Stage_Submitter = input_map["Stage_Submitter"]
 
-				sh 'echo "${Major_Tag_Name}" > ../Major_Tag_Name.txt'
+				sh 'echo "${Major_Tag_Name}" > ../Auth_Major_Tag_Name.txt'
 
 				checkout([
 					$class: 'GitSCM', 

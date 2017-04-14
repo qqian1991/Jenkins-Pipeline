@@ -1,4 +1,4 @@
-node('Prod-96.35') {
+node('Prod-97.11') {
 	stage("Stage1 - 生产环境源码下拉和编译打包") {
 		checkout([
 			$class: 'GitSCM', 
@@ -8,7 +8,7 @@ node('Prod-96.35') {
 		])	
 
 		withMaven(jdk: 'JDK1.8', maven: 'MVN3') {
-			sh "mvn clean package -Pprod"
+			sh "mvn clean package -Pprod -DskipTests"
 		}
 	}
 
