@@ -491,7 +491,7 @@ def Stage4() {
 						<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
 
 						""",
-						to: "${env.QA_Mail_List}",
+						to: "${Dev_Mail_List},${PM_Mail_List},${QA_Mail_List}",
 						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-最新的测试环境部署成功",
 						attachLog: true
 					)
@@ -863,6 +863,16 @@ def Stage6() {
 		waitUntil {
 			try {
 				//询问测试是否需要执行部署步骤
+				emailext (
+					body: """
+					<p>开发已经合并release到master和develop成功，请QA登录流水线任务执行冒烟环境部署和测试</p>
+					<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
+					""",
+					to: "${env.QA_Mail_List}",
+					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-请QA登录流水线任务执行冒烟环境部署和测试",
+					attachLog: true
+				)
+
                 def input_map = input(
 				message: '是否使用master分支部署用于冒烟测试的环境?（QA有权限执行此步）',
 				ok: "同意进行测试环境部署",
@@ -913,7 +923,7 @@ def Stage6() {
 					<p>测试完成后，请用个人账户登录Jenkins Pipeline页面确认冒烟测试完成</p>
 					<p>Jenkins Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}</a></p>
 					""",
-					to: "${env.QA_Mail_List}",
+					to: "${Dev_Mail_List},${PM_Mail_List},${QA_Mail_List}",
 					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-拉取master分支部署测试环境用于冒烟测试",
 					attachLog: true
 				)

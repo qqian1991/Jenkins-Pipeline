@@ -1,4 +1,4 @@
-node('Prod-97.11') {
+node('Prod-96.35') {
 	stage("Stage1 - 生产环境源码下拉和编译打包") {
 		checkout([
 			$class: 'GitSCM', 
@@ -17,8 +17,6 @@ node('Prod-97.11') {
 		sh '''
 		#!/bin/bash
 		set -ex
-		
-		export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.79.x86_64
 		backup_time=`date +%Y-%m-%d-%H`
 		backup_dir=todp-auth-backup-${backup_time}
 		auth_target=${WORKSPACE}/todp-auth-web/target
