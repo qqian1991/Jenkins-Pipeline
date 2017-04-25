@@ -18,7 +18,7 @@ node('Prod-97.11') {
 		#!/bin/bash
 		set -ex
 
-		backup_time=`date +%Y-%m-%d-%H`
+		backup_time=`date +%Y-%m-%d-%H-%M`
 		backup_dir=todp-web-backend-backup-${backup_time}
 		home_war_target=${WORKSPACE}/todp-web/todp-home-web/target
 		home_war_name=todp-home-web.war
@@ -73,21 +73,24 @@ node('Prod-97.11') {
 		#!/bin/bash
 		set -ex
 
-		backup_time=`date +%Y-%m-%d-%H`
+		backup_time=`date +%Y-%m-%d-%H-%M`
 		frontend_dir=todp-one-web-pc
 
 		# check related dir
-		if [ ! -d "${frontend_dir}" ];then
-			mkdir -p ${frontend_dir}
+		if [ ! -d "${Package_Path}/${frontend_dir}" ];then
+			mkdir -p ${Package_Path}/${frontend_dir}
 		else
-			mv ${frontend_dir} ${frontend_dir}-${backup_time}
-			mkdir -p ${frontend_dir}
+			mv ${Package_Path}/${frontend_dir} ${Package_Path}/${frontend_dir}-${backup_time}
+			mkdir -p ${Package_Path}/${frontend_dir}
 		fi
 
 		echo "start backup"
-		cd ${Package_Path}
+		cd ${WORKSPACE}
+		ls -al
 		cp -r ${WORKSPACE}/todp-home-web ${Package_Path}/${frontend_dir}/
 		cp -r ${WORKSPACE}/todp-operation-web ${Package_Path}/${frontend_dir}/
+		cd ${Package_Path}
+		ls -al
 		cd ${Package_Path}/${frontend_dir}
 		ls -al
 		'''

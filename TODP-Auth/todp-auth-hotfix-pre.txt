@@ -8,8 +8,8 @@ Action
 6-生产环境构建打包
 
 
-GitLab_URL_SSH=git@10.142.78.33:DataPlatform/todp-auth.git
-GitLab_URL_HTTP=http://10.142.78.33:8080/DataPlatform/todp-auth.git
+Backend_GitLab_URL_SSH=git@10.142.78.33:DataPlatform/todp-auth.git
+Backend_GitLab_URL_HTTP=http://10.142.78.33:8080/DataPlatform/todp-auth.git
 Dev_Leader_User=xu_chao
 QA_Leader_User=shimh
 PM_Leader_User=zhaoxiang
@@ -18,6 +18,6 @@ QA_User_List=shimh,chenzy,qianqi,liyongping,liuxiao
 Dev_Mail_List=xu_chao@chinatelecom.cn,wugj@chinatelecom.cn,liujinyao@chinatelecom.cn,chenj@chinatelecom.cn,chenyj@chinatelecom.cn,wangyi5@chinatelecom.cn,qianqi@chinatelecom.cn
 QA_Mail_List=bigdata-qa@chinatelecom.cn
 PM_Mail_List=zhaoxiang@chinatelecom.cn
-Hotfix_Exist=empty
+Hotfix_Exist=hotfix-0418
 
 

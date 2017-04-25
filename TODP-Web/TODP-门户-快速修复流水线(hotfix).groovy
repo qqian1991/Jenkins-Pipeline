@@ -1008,8 +1008,8 @@ def Stage6() {
 					body: """
 					<p>在生产环境97.11拉取master分支打包成功，请相关开发负责人去${env.Package_Path}目录下取最新的包进行生产环境包替换和启动</p>
 					<p>目录下内容包括:</p>
-			        <p>1) 后端的可执行war包</p>
-			        <p>2) 前端编译后的dist文件夹</p>
+			        <p>1) 后端的可执行war包: todp-home-web.war和todp-operation-web.war</p>
+			        <p>2) 前端编译后的dist文件夹: 在todp-one-web-pc目录下</p>
 					<p>生产环境打包触发用户： ${env.Stage_Submitter}</p>
 					<p>整个流水线流程完成，查看具体步骤和细节，可以登录Jenkins Pipeline页面查看</p>
 					<p>Jenkins Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}</a></p>

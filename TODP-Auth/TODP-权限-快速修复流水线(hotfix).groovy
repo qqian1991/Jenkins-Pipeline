@@ -58,7 +58,7 @@ def Stage1() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])	
 
@@ -459,7 +459,7 @@ def Stage4() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -519,7 +519,7 @@ def Stage4() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -595,7 +595,7 @@ def Stage4() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -663,7 +663,7 @@ def Stage4() {
 					checkout([
 						$class: 'GitSCM', 
 						branches: [[name: '*/develop']], 		
-						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
 						extensions: [[$class: 'WipeWorkspace']]
 					])
 
@@ -879,7 +879,7 @@ def Stage6() {
 				def prod_build_step = build (
 					job: 'TODP-权限生产部署子任务', 
 					parameters: [
-					string(name: 'GitLab_URL_HTTP', value: "${env.GitLab_URL_HTTP}"), 
+					string(name: 'Backend_GitLab_URL_HTTP', value: "${env.BackendGitLab_URL_HTTP}"), 
 					string(name: 'Package_Path', value: "${env.Package_Path}")
 					], 
 					quietPeriod: 3,
@@ -896,6 +896,8 @@ def Stage6() {
 				emailext (
 					body: """
 					<p>在生产环境96.35拉取master分支打包成功，请相关开发负责人去${env.Package_Path}目录下取最新的包进行生产环境包替换和启动</p>
+					<p>内容包括：</p>
+					<p>1) todp-auth-web.jar和todp-auth-web-v1.tar.gz
 					<p>生产环境打包触发用户： ${env.Stage_Submitter}</p>
 					<p>整个流水线流程完成，查看具体步骤和细节，可以登录Jenkins Pipeline页面查看</p>
 					<p>Jenkins Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}</a></p>
