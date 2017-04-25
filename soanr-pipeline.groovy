@@ -22,8 +22,13 @@ node('Docker-3') {
 
   stage('SonarQube analysis') {
     withSonarQubeEnv('SonarQube-58') {
-      sh "mvn clean package $SONAR_MAVEN_GOAL -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.projectName=todp-one -Dsonar.branch=develop -DskipTests"
+      sh "mvn clean package $SONAR_MAVEN_GOAL -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.projectName=todp-one -Dsonar.branch=develop"
     }
+
+    junit (
+      allowEmptyResults: true, 
+      testResults: '**/surefire-reports/**.xml'
+    )
   }
   
   stage("Quality Gate") {
