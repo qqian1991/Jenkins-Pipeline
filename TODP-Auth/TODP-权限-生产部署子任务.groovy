@@ -31,15 +31,15 @@ node('Prod-96.35') {
 
 		echo "start backup old war files"
 		if [ ! -d "${Package_Path}/${backup_dir}" ];then
-			mkdir -p ${backup_dir}
+			mkdir -p ${Package_Path}/${backup_dir}
 		fi 
 
 		if [ -f "${Package_Path}/${auth_jar_name}" ];then
-			mv ${auth_jar_name} ${backup_dir}/
+			mv ${Package_Path}/${auth_jar_name} ${Package_Path}/${backup_dir}/
 		fi 
 
 		if [ -f "${Package_Path}/${auth_tar_name}" ];then
-			mv ${auth_tar_name} ${backup_dir}/
+			mv ${Package_Path}/${auth_tar_name} ${Package_Path}/${backup_dir}/
 		fi 
 
 		cp ${auth_target}/${auth_jar_name} ${Package_Path}/
