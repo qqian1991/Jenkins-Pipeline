@@ -38,17 +38,17 @@ def Stage1() {
 				// 发送邮件通知开发组长拉取feature分支
 				emailext (
 					body: """
-					<p>请开发组长用个人账户登录Jenkins Pipeline页面，拉取feature分支用于功能开发</p>
+					<p>请开发组长用个人账户登录Jenkins Pipeline页面，同时为前端和后端项目拉取feature分支用于功能开发</p>
 					<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
 					""",
 					to: "${env.Dev_Mail_List}",
-					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-请开发组长拉取feanture分支",
+					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-请开发组长同时给前端和后端项目拉取feature分支",
 					attachLog: true
 				)
 
 				// 是否进行拉取feature分支步骤，并且输入feature分支名称
                 def input_map = input(
-				message: '是否为该项目拉取feature分支?（仅开发组长有权限执行此步）',
+				message: '是否同时为前端和后端项目拉取feature分支?（仅开发组长有权限执行此步）',
 				ok: "同意拉取feature分支",
 				parameters: [
 					string(defaultValue: 'feature-*', description: 'feature分支名称，格式以feature-开头', name: 'Feature_Branch_Name'),
@@ -66,7 +66,7 @@ def Stage1() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])	
 
@@ -74,7 +74,35 @@ def Stage1() {
 				sh '''
 					#!/bin/bash
 					set -ex
-					echo "step1 - 创建feature分支"
+					echo "step1 - 创建后端feature分支"
+					cd ${WORKSPACE}
+					branch_result=`git branch -a`
+					echo "branch_result: ${branch_result}"
+					if [[ $branch_result =~ $Feature_Branch_Name ]]
+					then
+					  echo "该feature分支：${Feature_Branch_Name}已经存在"
+					  exit 1
+					else
+					  git checkout -b ${Feature_Branch_Name} origin/develop
+					  git push origin ${Feature_Branch_Name}
+					  git branch --set-upstream-to=origin/${Feature_Branch_Name} ${Feature_Branch_Name}
+					  git branch -a
+					fi
+				'''
+
+				// 拉取git源码
+				checkout([
+					$class: 'GitSCM', 
+					branches: [[name: '*/develop']], 		
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Frontend_GitLab_URL_SSH}"]],
+					extensions: [[$class: 'WipeWorkspace']]
+				])	
+
+				// 执行shell脚本用于拉取feature分支
+				sh '''
+					#!/bin/bash
+					set -ex
+					echo "step1 - 创建前端feature分支"
 					cd ${WORKSPACE}
 					branch_result=`git branch -a`
 					echo "branch_result: ${branch_result}"
@@ -93,13 +121,13 @@ def Stage1() {
 				//shell执行成功，则发送邮件给开发列表，feature分支已经拉取，可以开始进行开发
 				emailext (
 					body: """
-					<p>拉取Feature分支${env.Feature_Branch_Name}成功，进入开发和自测阶段</p>
+					<p>同时为前端和后端项目拉取Feature分支${env.Feature_Branch_Name}成功，进入开发和自测阶段</p>
 					<p>拉取分支用户：${env.Stage_Submitter} </p>
 					<p>请开发成员用个人账户登录Jenkins Pipeline页面，部署开发环境进行后续开发和部署</p>
 					<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
 					""",
 					to: "${Dev_Mail_List},${PM_Mail_List},${QA_Mail_List}",
-					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-拉取Feature分支成功",
+					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-同时为前端和后端项目拉取Feature分支成功",
 					attachLog: true
 				)
 
@@ -112,7 +140,7 @@ def Stage1() {
 				// 发送邮件拉取feature分支失败，需要开发或者QA检查原因，由开发组长重新拉取
 				emailext (
 					body: """
-					<p>拉取Feature分支${env.Feature_Branch_Name}失败，可能原因：<p>
+					<p>同时为前端和后端项目拉取Feature分支${env.Feature_Branch_Name}失败，可能原因：<p>
 					<p>1. ${env.Feature_Branch_Name}分支已经存在，请检查，并且输入正确的Feature分支名称</p>
 					<p>2. 所运行的Jenkins节点无法连接Gitlab项目或者SSH验证失败，请和QA组联系</p>
 					<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
@@ -120,7 +148,7 @@ def Stage1() {
 					<p>查明原因后请开发组长重新在Jenkins Pipeline视图继续拉取feature分支</p>
 					""",
 					to: "${env.Dev_Mail_List}",
-					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-拉取Feature分支失败",
+					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-同时为前端和后端项目拉取Feature分支失败",
 					attachLog: true
 				)
 
@@ -169,30 +197,42 @@ def Stage2() {
 					message: '是否开始部署开发环境?（相关开发有权限执行此步）',
 					ok: "同意进行开发环境部署",
 					parameters: [
-						string(defaultValue: 'DP-40', description: '部署环境节点', name: 'Dev_Env'),
-						string(defaultValue: '/home/op/hjt', description: '部署路径', name: 'Dev_Deploy_Path'),
+						string(defaultValue: 'DP-40', description: '后端部署节点', name: 'Dev_Backend_Env'),
+						string(defaultValue: 'DP-40', description: '前端部署节点', name: 'Dev_Frontend_Env'),
+						string(defaultValue: '/home/op/hjt', description: '后端部署路径', name: 'Dev_Backend_Deploy_Path'),
+						string(defaultValue: '/home/html/todp-one-web-pc', description: '前端部署路径', name: 'Dev_Frontend_Deploy_Path')
 					],
 					submitter: "${env.Dev_User_List}",
 					submitterParameter: 'Stage_Submitter_2'
 					)
 
-					env.Dev_Env = input_map_2["Dev_Env"]
+					env.Dev_Backend_Env = input_map_2["Dev_Backend_Env"]
+					env.Dev_Frontend_Env = input_map_2["Dev_Frontend_Env"]
 					env.Stage_Submitter_2 = input_map_2["Stage_Submitter_2"]
-					env.Dev_Deploy_Path = input_map_2["Dev_Deploy_Path"]
+					env.Dev_Backend_Deploy_Path = input_map_2["Dev_Backend_Deploy_Path"]
+					env.Dev_Frontend_Deploy_Path = input_map_2["Dev_Frontend_Deploy_Path"]
 
 					// 如果执行部署，则调用部署子任务，把需要的参数传入
 					def dev_build_step = build (
 						job: 'TODP-Web门户-源码构建部署-V2', 
 						parameters: [
+						string(name: 'Step1', value: ""), 
 						string(name: 'Build_Config', value: "dev"), 
-						string(name: 'Operation_Web_Deploy', value: 'yes'),
-						string(name: 'Operation_Web_Build_Branch', value: "origin/${env.Feature_Branch_Name}"), 
-						string(name: 'Home_Web_Deploy', value: 'yes'),
-						string(name: 'Home_Web_Build_Branch', value: "origin/${env.Feature_Branch_Name}"),
-						string(name: 'Auth_Deploy', value: 'no'),
-						string(name: 'Auth_Build_Branch', value: 'develop'),
-						string(name: 'Web_Deploy_Path', value: "${env.Dev_Deploy_Path}"), 
-						string(name: 'Web_Deploy_Node', value: "${env.Dev_Env}")
+						string(name: 'Step2', value: ""),
+						string(name: 'Web_Backend_Deploy', value: "yes"),
+						string(name: 'Web_Backend_Deploy_Branch', value: "origin/${env.Feature_Branch_Name}"),
+						string(name: 'Web_Backend_Deploy_Path', value: "${env.Dev_Backend_Deploy_Path}"), 
+						string(name: 'Web_Backend_Deploy_Node', value: "${env.Dev_Backend_Env}"),
+						string(name: 'Step3', value: ""),
+						string(name: 'Web_Frontend_Deploy', value: "yes"),
+						string(name: 'Web_Frontend_Deploy_Branch', value: "origin/${env.Feature_Branch_Name}"),
+						string(name: 'Web_Frontend_Deploy_Path', value: "${env.Dev_Frontend_Deploy_Path}"), 
+						string(name: 'Web_Frontend_Deploy_Node', value: "${env.Dev_Frontend_Env}"),
+						string(name: 'Step4', value: ""),
+						string(name: 'Auth_Backend_Deploy', value: "no"),
+						string(name: 'Auth_Backend_Deploy_Branch', value: "origin/develop"),
+						string(name: 'Auth_Backend_Deploy_Path', value: "不进行构建"), 
+						string(name: 'Auth_Backend_Deploy_Node', value: "不进行构建") 
 						], 
 						quietPeriod: 3,
 						propagate: false
@@ -315,9 +355,9 @@ def Stage3() {
 			emailext (
 				body: """
 				<p>PM已经确认开发阶段完成，请开发组长执行如下分支操作：</p>
-				<p> 1)合并feature分支（如有冲突，请手动解决冲突后再运行）</p>
-				<p> 2)删除feature分支</p>
-				<p> 3)拉取release分支以及移交QA</p>
+				<p> 1)同时合并前端和后端项目的feature分支到develop分支（如有冲突，请手动解决冲突后再运行）</p>
+				<p> 2)同时删除前端和后端项目的feature分支</p>
+				<p> 3)同时为前端和后端项目拉取release分支以及移交QA</p>
 				<p>请开发组长用个人账户登录Jenkins Pipeline页面按照提示执行步骤</p>
 				<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
 				""",
@@ -329,7 +369,7 @@ def Stage3() {
 			
 			try {
 				env.Stage_Submitter = input(
-				message: "是否将${env.Feature_Branch_Name}分支合并到develop分支?（仅开发组长有权限执行此步）",
+				message: "是否同时将前端和后端项目的${env.Feature_Branch_Name}分支合并到develop分支?（仅开发组长有权限执行此步）",
 				ok: "同意进行分支合并",
 				submitter: "${env.Dev_Leader_User}",
 				submitterParameter: 'Stage_Submitter'
@@ -338,7 +378,26 @@ def Stage3() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
+					extensions: [[$class: 'WipeWorkspace']]
+				])
+
+				sh '''
+				#!/bin/bash
+				set -ex
+				echo "合并feature分支到develop分支"
+				cd ${WORKSPACE}
+				git checkout -b develop origin/develop
+				git pull origin develop
+				git merge --no-ff origin/${Feature_Branch_Name}
+				git push origin develop
+				'''
+				sleep 3
+
+				checkout([
+					$class: 'GitSCM', 
+					branches: [[name: '*/develop']], 		
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Frontend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -356,11 +415,11 @@ def Stage3() {
 
 				emailext (
 					body: """
-					<p>合并feature分支${env.Feature_Branch_Name}到develop分支成功</p>
+					<p>同时合并前端和后端项目的feature分支${env.Feature_Branch_Name}到develop分支成功</p>
 					<p>代码合并触发用户：${env.Stage_Submitter}</p>
 					""",
 					to: "${Dev_Mail_List},${PM_Mail_List},${QA_Mail_List}",
-					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}任务-合并${env.Feature_Branch_Name}分支到develop分支成功",
+					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}任务-同时合并前端和后端项目的${env.Feature_Branch_Name}分支到develop分支成功",
 					attachLog: true
 				)
 
@@ -402,7 +461,7 @@ def Stage3() {
 		waitUntil {
 			try {
 				def input_map_0 = input(
-				message: "合并成功，是否删除该${env.Feature_Branch_Name}分支?（仅开发组长有权限执行此步）",
+				message: "合并成功，是否同时删除前端和后端项目的${env.Feature_Branch_Name}分支?（仅开发组长有权限执行此步）",
 				ok: "继续",
 				parameters: [
 				choice(choices: "Yes\nNo\n", description: "是否删除${env.Feature_Branch_Name}分支!（如确认合并成功，建议删除）", name: 'Feature_Branch_Delete')
@@ -418,7 +477,23 @@ def Stage3() {
 					checkout([
 						$class: 'GitSCM', 
 						branches: [[name: '*/develop']], 		
-						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
+						extensions: [[$class: 'WipeWorkspace']]
+					])
+
+					sh '''
+					#!/bin/bash
+					set -ex
+					echo "删除成功合并的feature分支"
+					cd ${WORKSPACE}
+					git push origin --delete ${Feature_Branch_Name}
+					'''
+					sleep 3
+
+					checkout([
+						$class: 'GitSCM', 
+						branches: [[name: '*/develop']], 		
+						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Frontend_GitLab_URL_SSH}"]],
 						extensions: [[$class: 'WipeWorkspace']]
 					])
 
@@ -469,7 +544,7 @@ def Stage3() {
 		waitUntil {
 			try {
                 def input_map = input(
-				message: '是否为该项目拉取release分支?（仅开发组长有权限执行此步）',
+				message: '是否同时为前端和后端项目拉取release分支?（仅开发组长有权限执行此步）',
 				ok: "同意拉取release分支",
 				parameters: [
 					string(defaultValue: 'release-*', description: 'release分支名称，格式以release-开头', name: 'Release_Branch_Name'),
@@ -485,7 +560,34 @@ def Stage3() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
+					extensions: [[$class: 'WipeWorkspace']]
+				])
+
+				sh '''
+				#!/bin/bash
+				set -ex
+				echo "step3 - 从develop分支拉取release分支"
+				cd ${WORKSPACE}
+				branch_result=`git branch -a`
+				echo "branch_result: ${branch_result}"
+				if [[ $branch_result =~ $Release_Branch_Name ]]
+				then
+					echo "该release分支：${Release_Branch_Name}已经存在"
+				    exit 1
+				else
+					git checkout -b ${Release_Branch_Name} origin/develop
+					git push origin ${Release_Branch_Name}
+					git branch --set-upstream-to=origin/${Release_Branch_Name} ${Release_Branch_Name}
+					git branch -a
+				fi
+				'''
+				sleep 3
+
+				checkout([
+					$class: 'GitSCM', 
+					branches: [[name: '*/develop']], 		
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Frontend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -511,13 +613,13 @@ def Stage3() {
 
 				emailext (
 					body: """
-					<p>开发完成，交付测试，并且成功拉取${env.Release_Branch_Name}分支，请QA使用该分支进行验收测试</p>
+					<p>开发完成，交付测试，并且同时成功为前端和后端项目拉取${env.Release_Branch_Name}分支，请QA使用该分支进行验收测试</p>
 					<p>请测试成员用个人账户登录Jenkins Pipeline页面执行测试环境部署步骤</p>
 					<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
 					<p>Release分支拉取用户：${env.Stage_Submitter} </p>
 					""",
 					to: "${env.Dev_Mail_List},${env.QA_Mail_List},${env.PM_Mail_List}",
-					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-开发完成，拉取${env.Release_Branch_Name}分支，并交付QA测试",
+					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-开发完成，为前端和后端项目同时拉取${env.Release_Branch_Name}分支，并交付QA测试",
 					attachLog: true
 				)
 
@@ -582,30 +684,42 @@ def Stage4() {
 					message: '是否开始部署测试环境?（QA有权限执行此步）',
 					ok: "同意进行测试环境部署",
 					parameters: [
-						string(defaultValue: 'QA-54', description: '部署环境', name: 'QA_Env'),
-						string(defaultValue: '/usr/bdusr01/qa', description: '部署路径', name: 'QA_Deploy_Path'),
+						string(defaultValue: 'QA-54', description: '后端部署节点', name: 'QA_Backend_Env'),
+						string(defaultValue: 'QA-54', description: '前端部署节点', name: 'QA_Frontend_Env'),
+						string(defaultValue: '/usr/bdusr01/qa', description: '后端部署路径', name: 'QA_Backend_Deploy_Path'),
+						string(defaultValue: '/home/html/todp-one-web-pc', description: '前端部署路径', name: 'QA_Frontend_Deploy_Path')
 					],
 					submitter: "${env.QA_User_List}",
 					submitterParameter: 'Stage_Submitter_2'
 					)
 
-					env.QA_Env = input_map_2["QA_Env"]
+					env.QA_Backend_Env = input_map_2["QA_Backend_Env"]
+					env.QA_Frontend_Env = input_map_2["QA_Frontend_Env"]
 					env.Stage_Submitter_2 = input_map_2["Stage_Submitter_2"]
-					env.QA_Deploy_Path = input_map_2["QA_Deploy_Path"]
+					env.QA_Backend_Deploy_Path = input_map_2["QA_Backend_Deploy_Path"]
+					env.QA_Frontend_Deploy_Path = input_map_2["QA_Frontend_Deploy_Path"]
 
 					// 如果执行部署，则调用部署子任务，把需要的参数传入
 					def test_build_step = build (
 						job: 'TODP-Web门户-源码构建部署-V2', 
 						parameters: [
+						string(name: 'Step1', value: ""),
 						string(name: 'Build_Config', value: "test"), 
-						string(name: 'Operation_Web_Deploy', value: 'yes'),
-						string(name: 'Operation_Web_Build_Branch', value: "origin/${env.Release_Branch_Name}"), 
-						string(name: 'Home_Web_Deploy', value: 'yes'),
-						string(name: 'Home_Web_Build_Branch', value: "origin/${env.Release_Branch_Name}"),
-						string(name: 'Auth_Deploy', value: 'no'),
-						string(name: 'Auth_Build_Branch', value: 'develop'),
-						string(name: 'Web_Deploy_Path', value: "${env.QA_Deploy_Path}"), 
-						string(name: 'Web_Deploy_Node', value: "${env.QA_Env}")
+						string(name: 'Step2', value: ""),
+						string(name: 'Web_Backend_Deploy', value: "yes"),
+						string(name: 'Web_Backend_Deploy_Branch', value: "origin/${env.Release_Branch_Name}"),
+						string(name: 'Web_Backend_Deploy_Path', value: "${env.QA_Backend_Deploy_Path}"), 
+						string(name: 'Web_Backend_Deploy_Node', value: "${env.QA_Backend_Env}"),
+						string(name: 'Step3', value: ""),
+						string(name: 'Web_Frontend_Deploy', value: "yes"),
+						string(name: 'Web_Frontend_Deploy_Branch', value: "origin/${env.Release_Branch_Name}"),
+						string(name: 'Web_Frontend_Deploy_Path', value: "${env.QA_Frontend_Deploy_Path}"), 
+						string(name: 'Web_Frontend_Deploy_Node', value: "${env.QA_Frontend_Env}"),
+						string(name: 'Step4', value: ""),
+						string(name: 'Auth_Backend_Deploy', value: "no"),
+						string(name: 'Auth_Backend_Deploy_Branch', value: "origin/develop"),
+						string(name: 'Auth_Backend_Deploy_Path', value: "不进行构建"), 
+						string(name: 'Auth_Backend_Deploy_Node', value: "不进行构建")
 						], 
 						quietPeriod: 3,
 						propagate: false
@@ -672,9 +786,9 @@ def Stage4() {
 							body: """
 							<p>QA验收测试已经完成，请开发组长对分支进行相应操作，用来准备上线</p>
 							<p>请开发组长用个人账户登录Jenkins Pipeline页面，然后按照提示执行如下步骤：</p>
-							<p> 1)合并release分支到develop分支（如有冲突，请手动解决冲突后再运行）</p>
-							<p> 2)合并release分支到master分支（如有冲突，请手动解决冲突后再运行）</p>
-							<p> 3)合并成功后，删除release分支</p>
+							<p> 1)同时合并前端和后端项目的release分支到develop分支（如有冲突，请手动解决冲突后再运行）</p>
+							<p> 2)同时合并前端和后端项目的release分支到master分支（如有冲突，请手动解决冲突后再运行）</p>
+							<p> 3)合并成功后，同时删除前端和后端的release分支</p>
 							<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
 							""",
 							to: "${env.Dev_Mail_List},${env.QA_Mail_List},${env.PM_Mail_List}",
@@ -722,7 +836,7 @@ def Stage5() {
 		waitUntil {
 			try {
 				env.Stage_Submitter = input(
-				message: "是否将${env.Release_Branch_Name}分支合并到develop分支?（仅开发组长有权限执行此步）",
+				message: "是否同时将前端和后端项目的${env.Release_Branch_Name}分支合并到develop分支?（仅开发组长有权限执行此步）",
 				ok: "同意进行分支合并",
 				submitter: "${env.Dev_Leader_User}",
 				submitterParameter: 'Stage_Submitter'
@@ -731,7 +845,26 @@ def Stage5() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
+					extensions: [[$class: 'WipeWorkspace']]
+				])
+
+				sh '''
+				#!/bin/bash
+				set -ex
+				echo "合并release分支到develop分支"
+				cd ${WORKSPACE}
+				git checkout -b develop origin/develop
+				git pull origin develop
+				git merge --no-ff origin/${Release_Branch_Name}
+				git push origin develop
+				'''
+				sleep 3
+
+				checkout([
+					$class: 'GitSCM', 
+					branches: [[name: '*/develop']], 		
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Frontend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -782,7 +915,7 @@ def Stage5() {
 		waitUntil {
 			try {
 				env.Stage_Submitter = input(
-				message: "是否将${env.Release_Branch_Name}分支合并到master分支?（仅开发组长有权限执行此步）",
+				message: "是否同时将前端和后端项目的${env.Release_Branch_Name}分支合并到master分支?（仅开发组长有权限执行此步）",
 				ok: "同意进行分支合并",
 				submitter: "${env.Dev_Leader_User}",
 				submitterParameter: 'Stage_Submitter'
@@ -791,7 +924,24 @@ def Stage5() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
+					extensions: [[$class: 'WipeWorkspace']]
+				])
+
+				sh '''
+				echo "合并release分支到master分支"
+				cd ${WORKSPACE}
+				git checkout -b master origin/master
+				git pull origin master
+				git merge --no-ff origin/${Release_Branch_Name}
+				git push origin master
+				'''
+				sleep 3
+
+				checkout([
+					$class: 'GitSCM', 
+					branches: [[name: '*/develop']], 		
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Frontend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -807,11 +957,11 @@ def Stage5() {
 
 				emailext (
 					body: """
-					<p>合并release分支${env.Release_Branch_Name}到develop分支和master分支成功</p>
+					<p>同时合并前端项目和后端项目的release分支${env.Release_Branch_Name}到develop分支和master分支成功</p>
 					<p>代码合并触发用户：${env.Stage_Submitter}</p>
 					""",
 					to: "${env.Dev_Mail_List},${env.QA_Mail_List},${env.PM_Mail_List}",
-					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-合并${env.Release_Branch_Name}分支到develop分支和master分支成功",
+					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-同时合并前端项目和后端项目的${env.Release_Branch_Name}分支到develop分支和master分支成功",
 					attachLog: true
 				)
 				true
@@ -850,7 +1000,7 @@ def Stage5() {
 			try {
 
                 def input_map = input(
-				message: "${env.Release_Branch_Name}已合并到master分支，请打上大版本tag?（仅开发组长有权限执行此步）",
+				message: "${env.Release_Branch_Name}已合并到master分支，请同时为前端和后端项目打上大版本tag?（仅开发组长有权限执行此步）",
 				ok: "同意给master分支打tag",
 				parameters: [
 					string(defaultValue: 'v*.0.0', description: 'tag用于标记上线的大版本，类似v1.0.0的格式', name: 'Major_Tag_Name'),
@@ -866,7 +1016,25 @@ def Stage5() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
+					extensions: [[$class: 'WipeWorkspace']]
+				])
+
+				sh '''
+				echo "在master分支打大版本tag"
+				cd ${WORKSPACE}
+				git checkout master
+				git pull origin master
+				git tag -a ${Major_Tag_Name} -m "Add major tag in master branch for product launch"
+				git push origin ${Major_Tag_Name} 
+				git show ${Major_Tag_Name} 
+				'''
+				sleep 3
+
+				checkout([
+					$class: 'GitSCM', 
+					branches: [[name: '*/develop']], 		
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Frontend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -883,11 +1051,11 @@ def Stage5() {
 
 				emailext (
 					body: """
-					<p>在master分支打tag - ${env.Major_Tag_Name}成功</p>
+					<p>同时在前端和后端项目的master分支打大版本tag - ${env.Major_Tag_Name}成功</p>
 					<p>添加tag用户：${env.Stage_Submitter}</p>
 					""",
 					to: "${env.Dev_Mail_List},${env.QA_Mail_List},${env.PM_Mail_List}",
-					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-在master分支打tag - ${env.Major_Tag_Name}成功",
+					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-同时在前端和后端项目的master分支打大版本tag - ${env.Major_Tag_Name}成功",
 					attachLog: true
 				)
 				true
@@ -917,10 +1085,10 @@ def Stage5() {
 		waitUntil {
 			try {
 				def input_map = input(
-				message: "合并成功，是否删除该${env.Release_Branch_Name}分支?（仅开发组长有权限执行此步）",
+				message: "合并成功，是否同时删除前端和后端项目的${env.Release_Branch_Name}分支?（仅开发组长有权限执行此步）",
 				ok: "继续",
 				parameters: [
-				choice(choices: "Yes\nNo\n", description: "是否删除${env.Release_Branch_Name}分支!（如确认合并成功，建议删除）", name: 'Release_Branch_Delete')
+				choice(choices: "Yes\nNo\n", description: "是否同时删除前端和后端项目的${env.Release_Branch_Name}分支!（如确认合并成功，建议删除）", name: 'Release_Branch_Delete')
 				],
 				submitter: "${env.Dev_Leader_User}",
 				submitterParameter: 'Stage_Submitter'
@@ -933,7 +1101,23 @@ def Stage5() {
 					checkout([
 						$class: 'GitSCM', 
 						branches: [[name: '*/develop']], 		
-						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
+						extensions: [[$class: 'WipeWorkspace']]
+					])
+
+					sh '''
+					#!/bin/bash
+					set -ex
+					echo "删除成功合并的release分支"
+					cd ${WORKSPACE}
+					git push origin --delete ${Release_Branch_Name}
+					'''
+					sleep 3
+
+					checkout([
+						$class: 'GitSCM', 
+						branches: [[name: '*/develop']], 		
+						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Frontend_GitLab_URL_SSH}"]],
 						extensions: [[$class: 'WipeWorkspace']]
 					])
 
@@ -948,11 +1132,11 @@ def Stage5() {
 
 					emailext (
 						body: """
-						<p>删除release分支${env.Release_Branch_Name}成功</p>
+						<p>同时删除前端和后端项目的release分支${env.Release_Branch_Name}成功</p>
 						<p>代码删除用户：${env.Stage_Submitter}</p>
 						""",
 						to: "${env.Dev_Mail_List},${env.QA_Mail_List},${env.PM_Mail_List}",
-						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-删除${env.Release_Branch_Name}分支成功",
+						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-同时删除前端和后端项目的${env.Release_Branch_Name}分支成功",
 						attachLog: true
 					)
 				}			
@@ -994,7 +1178,7 @@ def Stage6() {
 				
 				emailext (
 					body: """
-					<p>开发已经合并release到master和develop成功，请QA登录流水线任务执行冒烟环境部署和测试</p>
+					<p>开发已经同时合并前端和后端项目的release分支到master和develop成功，请QA登录流水线任务执行冒烟环境部署和测试</p>
 					<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
 					""",
 					to: "${env.QA_Mail_List}",
@@ -1007,30 +1191,42 @@ def Stage6() {
 				message: '是否使用master分支部署用于冒烟测试的环境?（QA有权限执行此步）',
 				ok: "同意进行测试环境部署",
 				parameters: [
-					string(defaultValue: 'QA-54', description: '部署环境', name: 'QA_Env'),
-					string(defaultValue: '/usr/bdusr01/qa', description: '部署路径', name: 'QA_Deploy_Path'),
+					string(defaultValue: 'QA-54', description: '后端部署节点', name: 'QA_Backend_Env'),
+					string(defaultValue: 'QA-54', description: '前端部署节点', name: 'QA_Frontend_Env'),
+					string(defaultValue: '/usr/bdusr01/qa', description: '后端部署路径', name: 'QA_Backend_Deploy_Path'),
+					string(defaultValue: '/home/html/todp-one-web-pc', description: '前端部署路径', name: 'QA_Frontend_Deploy_Path')
 				],
 				submitter: "${env.QA_User_List}",
 				submitterParameter: 'Stage_Submitter'
 				)
 
-				env.QA_Env = input_map["QA_Env"]
+				env.QA_Backend_Env = input_map["QA_Backend_Env"]
+				env.QA_Frontend_Env = input_map["QA_Frontend_Env"]
 				env.Stage_Submitter = input_map["Stage_Submitter"]
-				env.QA_Deploy_Path = input_map["QA_Deploy_Path"]
-
+				env.QA_Backend_Deploy_Path = input_map["QA_Backend_Deploy_Path"]
+				env.QA_Frontend_Deploy_Path = input_map["QA_Frontend_Deploy_Path"]
+				
 				// 如果执行部署，则调用部署子任务，把需要的参数传入
 				def smoke_build_step = build (
 					job: 'TODP-Web门户-源码构建部署-V2', 
 					parameters: [
+					string(name: 'Step1', value: ""),
 					string(name: 'Build_Config', value: "test"), 
-					string(name: 'Operation_Web_Deploy', value: 'yes'),
-					string(name: 'Operation_Web_Build_Branch', value: "origin/master"), 
-					string(name: 'Home_Web_Deploy', value: 'yes'),
-					string(name: 'Home_Web_Build_Branch', value: "origin/master"),
-					string(name: 'Auth_Deploy', value: 'no'),
-					string(name: 'Auth_Build_Branch', value: 'develop'),
-					string(name: 'Web_Deploy_Path', value: "${env.QA_Deploy_Path}"), 
-					string(name: 'Web_Deploy_Node', value: "${env.QA_Env}")
+					string(name: 'Step2', value: ""),
+					string(name: 'Web_Backend_Deploy', value: "yes"),
+					string(name: 'Web_Backend_Deploy_Branch', value: "origin/master"),
+					string(name: 'Web_Backend_Deploy_Path', value: "${env.QA_Backend_Deploy_Path}"), 
+					string(name: 'Web_Backend_Deploy_Node', value: "${env.QA_Backend_Env}"),
+					string(name: 'Step3', value: ""),
+					string(name: 'Web_Frontend_Deploy', value: "yes"),
+					string(name: 'Web_Frontend_Deploy_Branch', value: "origin/master"),
+					string(name: 'Web_Frontend_Deploy_Path', value: "${env.QA_Frontend_Deploy_Path}"), 
+					string(name: 'Web_Frontend_Deploy_Node', value: "${env.QA_Frontend_Env}"),
+					string(name: 'Step4', value: ""),
+					string(name: 'Auth_Backend_Deploy', value: "no"),
+					string(name: 'Auth_Backend_Deploy_Branch', value: "origin/master"),
+					string(name: 'Auth_Backend_Deploy_Path', value: "不进行构建"), 
+					string(name: 'Auth_Backend_Deploy_Node', value: "不进行构建")
 					], 
 					quietPeriod: 3,
 					propagate: false
@@ -1156,7 +1352,8 @@ def Stage7() {
 				def prod_build_step = build (
 					job: 'TODP-门户生产部署子任务', 
 					parameters: [
-					string(name: 'GitLab_URL_HTTP', value: "${env.GitLab_URL_HTTP}"), 
+					string(name: 'Backend_GitLab_URL_HTTP', value: "${env.Backend_GitLab_URL_HTTP}"), 
+					string(name: 'Frontend_GitLab_URL_HTTP', value: "${env.Frontend_GitLab_URL_HTTP}"), 
 					string(name: 'Package_Path', value: "${env.Package_Path}")
 					], 
 					quietPeriod: 3,
@@ -1172,13 +1369,14 @@ def Stage7() {
 
 				emailext (
 					body: """
-					<p>在生产环境97.11拉取master分支打包成功，请相关开发负责人去${env.Package_Path}目录下取最新的包进行生产环境包替换和启动</p>
+					<p>前端：拉取master分支生产环境97.11门户前端直接部署成功，部署路径为/usr/lib/todp-one-web-pc</p>
+					<p>后端：在生产环境97.11拉取master分支打包成功，请相关开发负责人去${env.Package_Path}目录下取最新的包进行生产环境包替换和启动</p>
 					<p>生产环境打包触发用户： ${env.Stage_Submitter}</p>
 					<p>整个流水线流程完成，查看具体步骤和细节，可以登录Jenkins Pipeline页面查看</p>
 					<p>Jenkins Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}</a></p>
 					""",
 					to: "${env.QA_Mail_List},${env.Dev_Mail_List},${env.PM_Mail_List}",
-					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-在生产环境97.11拉取master分支打包成功",
+					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-在生产环境97.11拉取master分支部署成功",
 					attachLog: true
 				)
 

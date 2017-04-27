@@ -27,7 +27,6 @@ node('Docker-3') {
 	stage("Stage7 - 生产环境构建打包") {
 		Stage7()
 	}
-
 }
 
 
@@ -66,7 +65,7 @@ def Stage1() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])	
 
@@ -185,16 +184,18 @@ def Stage2() {
 						job: 'TODP-Web门户-源码构建部署-V2', 
 						parameters: [
 						string(name: 'Build_Config', value: "dev"), 
-						string(name: 'Operation_Web_Deploy', value: 'no'),
-						string(name: 'Operation_Web_Build_Branch', value: "origin/${env.Feature_Branch_Name}"), 
-						string(name: 'Home_Web_Deploy', value: 'no'),
-						string(name: 'Home_Web_Build_Branch', value: "origin/${env.Feature_Branch_Name}"),
-						string(name: 'Auth_Deploy', value: 'yes'),
-						string(name: 'Auth_Build_Branch', value: 'origin/develop'),
-						string(name: 'Web_Deploy_Path', value: "${env.Dev_Deploy_Path}"), 
-						string(name: 'Web_Deploy_Node', value: "${env.Dev_Env}"),
-						string(name: 'Auth_Deploy_Path', value: "${env.Dev_Deploy_Path}"), 
-						string(name: 'Auth_Deploy_Node', value: "${env.Dev_Env}")
+						string(name: 'Web_Backend_Deploy', value: "no"),
+						string(name: 'Web_Backend_Deploy_Branch', value: "origin/develop"),
+						string(name: 'Web_Backend_Deploy_Path', value: "不进行构建"), 
+						string(name: 'Web_Backend_Deploy_Node', value: "不进行构建"),
+						string(name: 'Web_Frontend_Deploy', value: "no"),
+						string(name: 'Web_Frontend_Deploy_Branch', value: "origin/develop"),
+						string(name: 'Web_Frontend_Deploy_Path', value: "不进行构建"), 
+						string(name: 'Web_Frontend_Deploy_Node', value: "不进行构建"),
+						string(name: 'Auth_Backend_Deploy', value: "yes"),
+						string(name: 'Auth_Backend_Deploy_Branch', value: "origin/${env.Feature_Branch_Name}"),
+						string(name: 'Auth_Backend_Deploy_Path', value: "${Dev_Deploy_Path}"), 
+						string(name: 'Auth_Backend_Deploy_Node', value: "${env.Dev_Env}")
 						], 
 						quietPeriod: 3,
 						propagate: false
@@ -319,7 +320,7 @@ def Stage3() {
 		emailext (
 			body: """
 			<p>PM已经确认开发阶段完成，请开发组长执行如下分支操作：</p>
-			<p> 3)拉取release分支以及移交QA</p>
+			<p>1)拉取release分支以及移交QA</p>
 			<p>请开发组长用个人账户登录Jenkins Pipeline页面按照提示执行步骤</p>
 			<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
 			""",
@@ -347,7 +348,7 @@ def Stage3() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -460,16 +461,18 @@ def Stage4() {
 						job: 'TODP-Web门户-源码构建部署-V2', 
 						parameters: [
 						string(name: 'Build_Config', value: "test"), 
-						string(name: 'Operation_Web_Deploy', value: 'no'),
-						string(name: 'Operation_Web_Build_Branch', value: "origin/${env.Release_Branch_Name}"), 
-						string(name: 'Home_Web_Deploy', value: 'no'),
-						string(name: 'Home_Web_Build_Branch', value: "origin/${env.Release_Branch_Name}"),
-						string(name: 'Auth_Deploy', value: 'yes'),
-						string(name: 'Auth_Build_Branch', value: "origin/${env.Release_Branch_Name}"),
-						string(name: 'Web_Deploy_Path', value: "${env.QA_Deploy_Path}"), 
-						string(name: 'Web_Deploy_Node', value: "${env.QA_Env}"),
-						string(name: 'Auth_Deploy_Path', value: "${env.QA_Deploy_Path}"), 
-						string(name: 'Auth_Deploy_Node', value: "${env.QA_Env}")
+						string(name: 'Web_Backend_Deploy', value: "no"),
+						string(name: 'Web_Backend_Deploy_Branch', value: "origin/develop"),
+						string(name: 'Web_Backend_Deploy_Path', value: "不进行构建"), 
+						string(name: 'Web_Backend_Deploy_Node', value: "不进行构建"),
+						string(name: 'Web_Frontend_Deploy', value: "no"),
+						string(name: 'Web_Frontend_Deploy_Branch', value: "origin/develop"),
+						string(name: 'Web_Frontend_Deploy_Path', value: "不进行构建"), 
+						string(name: 'Web_Frontend_Deploy_Node', value: "不进行构建"),
+						string(name: 'Auth_Backend_Deploy', value: "yes"),
+						string(name: 'Auth_Backend_Deploy_Branch', value: "origin/${env.Release_Branch_Name}"),
+						string(name: 'Auth_Backend_Deploy_Path', value: "${QA_Deploy_Path}"), 
+						string(name: 'Auth_Backend_Deploy_Node', value: "${env.QA_Env}") 
 						], 
 						quietPeriod: 3,
 						propagate: false
@@ -600,7 +603,7 @@ def Stage5() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -661,7 +664,7 @@ def Stage5() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -737,7 +740,7 @@ def Stage5() {
 				checkout([
 					$class: 'GitSCM', 
 					branches: [[name: '*/develop']], 		
-					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+					userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
 					extensions: [[$class: 'WipeWorkspace']]
 				])
 
@@ -805,7 +808,7 @@ def Stage5() {
 					checkout([
 						$class: 'GitSCM', 
 						branches: [[name: '*/develop']], 		
-						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.GitLab_URL_SSH}"]],
+						userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_SSH}"]],
 						extensions: [[$class: 'WipeWorkspace']]
 					])
 
@@ -893,16 +896,18 @@ def Stage6() {
 					job: 'TODP-Web门户-源码构建部署-V2', 
 					parameters: [
 					string(name: 'Build_Config', value: "test"), 
-					string(name: 'Operation_Web_Deploy', value: 'no'),
-					string(name: 'Operation_Web_Build_Branch', value: "origin/master"), 
-					string(name: 'Home_Web_Deploy', value: 'no'),
-					string(name: 'Home_Web_Build_Branch', value: "origin/master"),
-					string(name: 'Auth_Deploy', value: 'yes'),
-					string(name: 'Auth_Build_Branch', value: 'origin/master'),
-					string(name: 'Web_Deploy_Path', value: "${env.QA_Deploy_Path}"), 
-					string(name: 'Web_Deploy_Node', value: "${env.QA_Env}"),
-					string(name: 'Auth_Deploy_Path', value: "${env.QA_Deploy_Path}"), 
-					string(name: 'Auth_Deploy_Node', value: "${env.QA_Env}")
+					string(name: 'Web_Backend_Deploy', value: "no"),
+					string(name: 'Web_Backend_Deploy_Branch', value: "origin/develop"),
+					string(name: 'Web_Backend_Deploy_Path', value: "不进行构建"), 
+					string(name: 'Web_Backend_Deploy_Node', value: "不进行构建"),
+					string(name: 'Web_Frontend_Deploy', value: "no"),
+					string(name: 'Web_Frontend_Deploy_Branch', value: "origin/develop"),
+					string(name: 'Web_Frontend_Deploy_Path', value: "不进行构建"), 
+					string(name: 'Web_Frontend_Deploy_Node', value: "不进行构建"),
+					string(name: 'Auth_Backend_Deploy', value: "yes"),
+					string(name: 'Auth_Backend_Deploy_Branch', value: "origin/master"),
+					string(name: 'Auth_Backend_Deploy_Path', value: "${QA_Deploy_Path}"), 
+					string(name: 'Auth_Backend_Deploy_Node', value: "${env.QA_Env}")
 					], 
 					quietPeriod: 3,
 					propagate: false
@@ -1027,9 +1032,9 @@ def Stage7() {
 
 
 				def prod_build_step = build (
-					job: 'TODP-权限生产部署子任务', 
+					job: 'TODP-权限-生产部署子任务(sub)', 
 					parameters: [
-					string(name: 'GitLab_URL_HTTP', value: "${env.GitLab_URL_HTTP}"), 
+					string(name: 'Backend_GitLab_URL_HTTP', value: "${env.Backend_GitLab_URL_HTTP}"), 
 					string(name: 'Package_Path', value: "${env.Package_Path}")
 					], 
 					quietPeriod: 3,

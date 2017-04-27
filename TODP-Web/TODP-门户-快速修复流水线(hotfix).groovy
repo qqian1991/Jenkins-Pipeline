@@ -196,20 +196,24 @@ def Stage2() {
 					def dev_build_step = build (
 						job: 'TODP-Web门户-源码构建部署-V2', 
 						parameters: [
+						string(name: 'Step1', value: ""), 
 						string(name: 'Build_Config', value: "dev"), 
+						string(name: 'Step2', value: ""),
 						string(name: 'Web_Backend_Deploy', value: "yes"),
 						string(name: 'Web_Backend_Deploy_Branch', value: "origin/${env.Hotfix_Branch_Name}"),
 						string(name: 'Web_Backend_Deploy_Path', value: "${env.Dev_Backend_Deploy_Path}"), 
 						string(name: 'Web_Backend_Deploy_Node', value: "${env.Dev_Backend_Env}"),
+						string(name: 'Step3', value: ""),
 						string(name: 'Web_Frontend_Deploy', value: "yes"),
 						string(name: 'Web_Frontend_Deploy_Branch', value: "origin/${env.Hotfix_Branch_Name}"),
 						string(name: 'Web_Frontend_Deploy_Path', value: "${env.Dev_Frontend_Deploy_Path}"), 
 						string(name: 'Web_Frontend_Deploy_Node', value: "${env.Dev_Frontend_Env}"),
+						string(name: 'Step4', value: ""),
 						string(name: 'Auth_Backend_Deploy', value: "no"),
 						string(name: 'Auth_Backend_Deploy_Branch', value: "origin/develop"),
 						string(name: 'Auth_Backend_Deploy_Path', value: "不进行构建"), 
-						string(name: 'Web_Backend_Deploy_Node', value: "不进行构建") 
-						], 
+						string(name: 'Auth_Backend_Deploy_Node', value: "不进行构建") 
+						],
 						quietPeriod: 3,
 						propagate: false
 					)
@@ -358,19 +362,23 @@ def Stage3() {
 					def test_build_step = build (
 						job: 'TODP-Web门户-源码构建部署-V2', 
 						parameters: [
+						string(name: 'Step1', value: ""),
 						string(name: 'Build_Config', value: "test"), 
+						string(name: 'Step2', value: ""),
 						string(name: 'Web_Backend_Deploy', value: "yes"),
 						string(name: 'Web_Backend_Deploy_Branch', value: "origin/${env.Hotfix_Branch_Name}"),
 						string(name: 'Web_Backend_Deploy_Path', value: "${env.QA_Backend_Deploy_Path}"), 
 						string(name: 'Web_Backend_Deploy_Node', value: "${env.QA_Backend_Env}"),
+						string(name: 'Step3', value: ""),
 						string(name: 'Web_Frontend_Deploy', value: "yes"),
 						string(name: 'Web_Frontend_Deploy_Branch', value: "origin/${env.Hotfix_Branch_Name}"),
 						string(name: 'Web_Frontend_Deploy_Path', value: "${env.QA_Frontend_Deploy_Path}"), 
 						string(name: 'Web_Frontend_Deploy_Node', value: "${env.QA_Frontend_Env}"),
+						string(name: 'Step4', value: ""),
 						string(name: 'Auth_Backend_Deploy', value: "no"),
 						string(name: 'Auth_Backend_Deploy_Branch', value: "origin/develop"),
 						string(name: 'Auth_Backend_Deploy_Path', value: "不进行构建"), 
-						string(name: 'Web_Backend_Deploy_Node', value: "不进行构建") 
+						string(name: 'Auth_Backend_Deploy_Node', value: "不进行构建")
 						], 
 						quietPeriod: 3,
 						propagate: false
@@ -850,19 +858,23 @@ def Stage5() {
 				def smoke_build_step = build (
 					job: 'TODP-Web门户-源码构建部署-V2', 
 					parameters: [
+					string(name: 'Step1', value: ""),
 					string(name: 'Build_Config', value: "test"), 
+					string(name: 'Step2', value: ""),
 					string(name: 'Web_Backend_Deploy', value: "yes"),
 					string(name: 'Web_Backend_Deploy_Branch', value: "origin/master"),
 					string(name: 'Web_Backend_Deploy_Path', value: "${env.QA_Backend_Deploy_Path}"), 
 					string(name: 'Web_Backend_Deploy_Node', value: "${env.QA_Backend_Env}"),
+					string(name: 'Step3', value: ""),
 					string(name: 'Web_Frontend_Deploy', value: "yes"),
 					string(name: 'Web_Frontend_Deploy_Branch', value: "origin/master"),
 					string(name: 'Web_Frontend_Deploy_Path', value: "${env.QA_Frontend_Deploy_Path}"), 
 					string(name: 'Web_Frontend_Deploy_Node', value: "${env.QA_Frontend_Env}"),
+					string(name: 'Step4', value: ""),
 					string(name: 'Auth_Backend_Deploy', value: "no"),
 					string(name: 'Auth_Backend_Deploy_Branch', value: "origin/master"),
 					string(name: 'Auth_Backend_Deploy_Path', value: "不进行构建"), 
-					string(name: 'Web_Backend_Deploy_Node', value: "不进行构建")
+					string(name: 'Auth_Backend_Deploy_Node', value: "不进行构建")
 					], 
 					quietPeriod: 3,
 					propagate: false
@@ -1006,16 +1018,14 @@ def Stage6() {
 
 				emailext (
 					body: """
-					<p>在生产环境97.11拉取master分支打包成功，请相关开发负责人去${env.Package_Path}目录下取最新的包进行生产环境包替换和启动</p>
-					<p>目录下内容包括:</p>
-			        <p>1) 后端的可执行war包: todp-home-web.war和todp-operation-web.war</p>
-			        <p>2) 前端编译后的dist文件夹: 在todp-one-web-pc目录下</p>
+					<p>前端：拉取master分支生产环境97.11门户前端直接部署成功，部署路径为/usr/lib/todp-one-web-pc</p>
+					<p>后端：在生产环境97.11拉取master分支打包成功，请相关开发负责人去${env.Package_Path}目录下取最新的包进行生产环境包替换和启动</p>
 					<p>生产环境打包触发用户： ${env.Stage_Submitter}</p>
 					<p>整个流水线流程完成，查看具体步骤和细节，可以登录Jenkins Pipeline页面查看</p>
 					<p>Jenkins Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}</a></p>
 					""",
 					to: "${env.QA_Mail_List},${env.Dev_Mail_List},${env.PM_Mail_List}",
-					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-在生产环境97.11拉取master分支打包成功",
+					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-在生产环境97.11拉取master分支构建和部署成功",
 					attachLog: true
 				)
 

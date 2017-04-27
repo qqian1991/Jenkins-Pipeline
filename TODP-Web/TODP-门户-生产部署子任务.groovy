@@ -1,11 +1,18 @@
 node('Prod-97.11') {
-	stage("Stage1 - 生产环境源码下拉和编译打包后端可执行包") {
+	stage("Stage1 - 生产环境源码下拉和编译后端可执行包") {
 		checkout([
 			$class: 'GitSCM', 
 			branches: [[name: 'origin/master']], 		
 			userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "${env.Backend_GitLab_URL_HTTP}"]],
 			extensions: [[$class: 'WipeWorkspace']]
 		])	
+
+		// Clean up the maven cache Dependency
+		sh '''
+		#!/bin/bash
+		set -ex
+		rm -rf ~/.m2/repository/com/chinatelecom/*
+		'''
 
 		withMaven(jdk: 'JDK1.8', maven: 'MVN3') {
 			sh "mvn clean package -Pprod -DskipTests"
@@ -25,31 +32,23 @@ node('Prod-97.11') {
 		operation_war_target=${WORKSPACE}/todp-web/todp-operation-web/target
 		operation_war_name=todp-operation-web.war
 
-		echo "WORKSPACE is: ${WORKSPACE}"
-		echo "backup_dir is: ${backup_dir}"
-		echo "home_war_target is: ${home_war_target}"
-		echo "home_war_name is: ${home_war_name}"
-		echo "operation_war_target is: ${operation_war_target}"
-		echo "operation_war_name is: ${operation_war_name}"
-
 		# check related dir
 		if [ ! -d "${Package_Path}" ];then
 			mkdir -p ${Package_Path}
 		fi
-		echo "Package_Path is: ${Package_Path}"
 
-		echo "start backup old war files"
+		# start backup old war files
 		cd ${Package_Path}
-		if [ ! -d "${backup_dir}" ];then
-			mkdir -p ${backup_dir}
+		if [ ! -d "${Package_Path}/${backup_dir}" ];then
+			mkdir -p ${Package_Path}/${backup_dir}
 		fi 
 
-		if [ -f "${home_war_name}" ];then
-			mv ${home_war_name} ${backup_dir}/
+		if [ -f "${Package_Path}/${home_war_name}" ];then
+			mv ${Package_Path}/${home_war_name} ${Package_Path}/${backup_dir}/
 		fi 
 
-		if [ -f "${operation_war_name}" ];then
-			mv ${operation_war_name} ${backup_dir}/
+		if [ -f "${Package_Path}/${operation_war_name}" ];then
+			mv ${Package_Path}/${operation_war_name} ${Package_Path}/${backup_dir}/
 		fi 
 
 		cp ${home_war_target}/${home_war_name} ${Package_Path}/
@@ -67,31 +66,32 @@ node('Prod-97.11') {
 		])	
 	}
 
-	stage("Stage4 - 将下拉的前端编译文件夹放到指定的目录下") {
+	stage("Stage4 - 替换生产原来的前端文件夹") {
 
 		sh '''
 		#!/bin/bash
 		set -ex
 
 		backup_time=`date +%Y-%m-%d-%H-%M`
-		frontend_dir=todp-one-web-pc
+		home_frontend_path=/usr/lib/todp-one-web-pc/todp-home-web
+		operation_frontend_path=/usr/lib/todp-one-web-pc/todp-operation-web
+		dist_backup_dir=dist-${backup_time}-bk
 
 		# check related dir
-		if [ ! -d "${Package_Path}/${frontend_dir}" ];then
-			mkdir -p ${Package_Path}/${frontend_dir}
-		else
-			mv ${Package_Path}/${frontend_dir} ${Package_Path}/${frontend_dir}-${backup_time}
-			mkdir -p ${Package_Path}/${frontend_dir}
+		if [ -d "${home_frontend_path}/dist" ];then
+			mv ${home_frontend_path}/dist ${home_frontend_path}/${dist_backup_dir}
+		fi
+
+		if [ -d "${operation_frontend_path}/dist" ];then
+			mv ${operation_frontend_path}/dist ${operation_frontend_path}/${dist_backup_dir}
 		fi
 
 		echo "start backup"
-		cd ${WORKSPACE}
+		cp -r ${WORKSPACE}/todp-home-web/dist ${home_frontend_path}/
+		cp -r ${WORKSPACE}/todp-operation-web/dist ${operation_frontend_path}/
+		cd ${home_frontend_path}
 		ls -al
-		cp -r ${WORKSPACE}/todp-home-web ${Package_Path}/${frontend_dir}/
-		cp -r ${WORKSPACE}/todp-operation-web ${Package_Path}/${frontend_dir}/
-		cd ${Package_Path}
-		ls -al
-		cd ${Package_Path}/${frontend_dir}
+		cd ${operation_frontend_path}
 		ls -al
 		'''
 	}

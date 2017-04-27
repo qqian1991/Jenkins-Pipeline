@@ -9,8 +9,10 @@ Action
 7-生产环境测试
 
 
-GitLab_URL_SSH=git@10.142.78.33:DataPlatform/todp-one.git
-GitLab_URL_HTTP=http://10.142.78.33:8080/DataPlatform/todp-one.git
+Backend_GitLab_URL_SSH=git@10.142.78.33:DataPlatform/todp-one.git
+Backend_GitLab_URL_HTTP=http://10.142.78.33:8080/DataPlatform/todp-one.git
+Frontend_GitLab_URL_SSH=git@10.142.78.33:DataPlatform/todp-one-web-pc.git
+Frontend_GitLab_URL_HTTP=http://10.142.78.33:8080/DataPlatform/todp-one-web-pc.git
 Dev_Leader_User=xu_chao
 QA_Leader_User=shimh
 PM_Leader_User=zhouyf
