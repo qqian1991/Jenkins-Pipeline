@@ -1,4 +1,4 @@
-node('Docker-3') {
+node('Docker-4') {
 
 	stage("Stage1 - 拉取hotfix分支进行线上问题快速快速修复") {
 		Stage1()
@@ -53,7 +53,7 @@ def Stage1() {
 				env.Hotfix_Branch_Name = input_map["Hotfix_Branch_Name"]
 				env.Stage_Submitter = input_map["Stage_Submitter"]
 				
-				sh 'echo "${Hotfix_Branch_Name}" > ../Hotfix_Branch_Name.txt'
+				sh 'echo "${Hotfix_Branch_Name}" > ../Web_Hotfix_Branch_Name.txt'
 
 				// 给后端项目拉取
 				checkout([
@@ -149,7 +149,7 @@ def Stage1() {
 
 	else {
 		echo "Skip Stage1"
-		sh 'echo "${Hotfix_Exist}" > ../Hotfix_Branch_Name.txt'
+		sh 'echo "${Hotfix_Exist}" > ../Web_Hotfix_Branch_Name.txt'
 	}
 }
 
@@ -157,7 +157,7 @@ def Stage2() {
 	if ("${params.Action}" ==~ /1-.*|2-.*/) {
 		waitUntil {
 			try {
-				def Hotfix_Branch_Name = readFile '../Hotfix_Branch_Name.txt'
+				def Hotfix_Branch_Name = readFile '../Web_Hotfix_Branch_Name.txt'
 				env.Hotfix_Branch_Name = Hotfix_Branch_Name.trim()
 
                 def input_map_1 = input(
@@ -323,7 +323,7 @@ def Stage3() {
 	if ("${params.Action}" ==~ /1-.*|2-.*|3-.*/) {
 		waitUntil {
 			try {
-				def Hotfix_Branch_Name = readFile '../Hotfix_Branch_Name.txt'
+				def Hotfix_Branch_Name = readFile '../Web_Hotfix_Branch_Name.txt'
 				env.Hotfix_Branch_Name = Hotfix_Branch_Name.trim()
 
                 def input_map_1 = input(
@@ -487,7 +487,7 @@ def Stage3() {
 
 def Stage4() {
 	if ("${params.Action}" ==~ /1-.*|2-.*|3-.*|4-.*/) {
-		def Hotfix_Branch_Name = readFile '../Hotfix_Branch_Name.txt'
+		def Hotfix_Branch_Name = readFile '../Web_Hotfix_Branch_Name.txt'
 		env.Hotfix_Branch_Name = Hotfix_Branch_Name.trim()
 
 		waitUntil {
