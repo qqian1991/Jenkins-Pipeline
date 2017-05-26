@@ -19,11 +19,6 @@ node('Docker-4') {
 	stage('Stage5 - 最终上线版本冒烟测试') {
 		Stage5()
 	}
-
-	stage("Stage6 - 生产环境构建打包") {
-		Stage6()
-	}
-
 }
 
 
@@ -53,7 +48,7 @@ def Stage1() {
 				env.Hotfix_Branch_Name = input_map["Hotfix_Branch_Name"]
 				env.Stage_Submitter = input_map["Stage_Submitter"]
 				
-				sh 'echo "${Hotfix_Branch_Name}" > ../Web_Hotfix_Branch_Name.txt'
+				sh 'echo "${Hotfix_Branch_Name}" > ../Schedule_Hotfix_Branch_Name.txt'
 
 				// 给后端项目拉取
 				checkout([
@@ -149,7 +144,7 @@ def Stage1() {
 
 	else {
 		echo "Skip Stage1"
-		sh 'echo "${Hotfix_Exist}" > ../Web_Hotfix_Branch_Name.txt'
+		sh 'echo "${Hotfix_Exist}" > ../Schedule_Hotfix_Branch_Name.txt'
 	}
 }
 
@@ -157,7 +152,7 @@ def Stage2() {
 	if ("${params.Action}" ==~ /1-.*|2-.*/) {
 		waitUntil {
 			try {
-				def Hotfix_Branch_Name = readFile '../Web_Hotfix_Branch_Name.txt'
+				def Hotfix_Branch_Name = readFile '../Schedule_Hotfix_Branch_Name.txt'
 				env.Hotfix_Branch_Name = Hotfix_Branch_Name.trim()
 
                 def input_map_1 = input(
@@ -174,67 +169,50 @@ def Stage2() {
 
 				if (!"${env.Dev_Completion}".contains("Yes")) {
 
-	                def input_map_2 = input(
+	                env.Stage_Submitter_2 = input(
 					message: '是否开始部署开发环境?（相关开发有权限执行此步）',
 					ok: "同意进行开发环境部署",
-					parameters: [
-						string(defaultValue: 'DP-40', description: '后端部署节点', name: 'Dev_Backend_Env'),
-						string(defaultValue: 'DP-40', description: '前端部署节点', name: 'Dev_Frontend_Env'),
-						string(defaultValue: '/home/op/hjt', description: '后端部署路径', name: 'Dev_Backend_Deploy_Path'),
-						string(defaultValue: '/home/html/todp-one-web-pc', description: '前端部署路径', name: 'Dev_Frontend_Deploy_Path')
-					],
 					submitter: "${env.Dev_User_List}",
 					submitterParameter: 'Stage_Submitter_2'
 					)
 
-					env.Dev_Backend_Env = input_map_2["Dev_Backend_Env"]
-					env.Dev_Frontend_Env = input_map_2["Dev_Frontend_Env"]
-					env.Stage_Submitter_2 = input_map_2["Stage_Submitter_2"]
-					env.Dev_Backend_Deploy_Path = input_map_2["Dev_Backend_Deploy_Path"]
-					env.Dev_Frontend_Deploy_Path = input_map_2["Dev_Frontend_Deploy_Path"]
-
 					def dev_build_step = build (
-						job: 'TODP-Web门户-源码构建部署-V2', 
+						job: "100-todp-schedule-release(build-image-up)", 
 						parameters: [
-						string(name: 'Step1', value: ""), 
-						string(name: 'Build_Config', value: "dev"), 
-						string(name: 'Step2', value: ""),
-						string(name: 'Web_Backend_Deploy', value: "yes"),
-						string(name: 'Web_Backend_Deploy_Branch', value: "origin/${env.Hotfix_Branch_Name}"),
-						string(name: 'Web_Backend_Deploy_Path', value: "${env.Dev_Backend_Deploy_Path}"), 
-						string(name: 'Web_Backend_Deploy_Node', value: "${env.Dev_Backend_Env}"),
-						string(name: 'Step3', value: ""),
+						string(name: 'Build_Config', value: "dev"),
+						string(name: 'Schedule_Deploy', value: "yes"),
+						string(name: 'Schedule_Deploy_Branch', value: "origin/${env.Hotfix_Branch_Name}"),
 						string(name: 'Web_Frontend_Deploy', value: "yes"),
 						string(name: 'Web_Frontend_Deploy_Branch', value: "origin/${env.Hotfix_Branch_Name}"),
-						string(name: 'Web_Frontend_Deploy_Path', value: "${env.Dev_Frontend_Deploy_Path}"), 
-						string(name: 'Web_Frontend_Deploy_Node', value: "${env.Dev_Frontend_Env}"),
-						string(name: 'Step4', value: ""),
-						string(name: 'Auth_Backend_Deploy', value: "no"),
-						string(name: 'Auth_Backend_Deploy_Branch', value: "origin/develop"),
-						string(name: 'Auth_Backend_Deploy_Path', value: "不进行构建"), 
-						string(name: 'Auth_Backend_Deploy_Node', value: "不进行构建") 
-						],
+						string(name: 'Deploy_Type', value: "dev"),
+						string(name: 'RancherUp_Node', value: "Docker-10.142.246.2"),
+						string(name: 'Loadbalance_Is', value: "0"),
+						string(name: 'Schedule_Backend_Container_Number', value: "1"),
+						string(name: 'Schedule_Frontend_Container_Number', value: "1")
+						], 
 						quietPeriod: 3,
 						propagate: false
 					)
 
 					env.dev_build_result = dev_build_step.result
 					if ("${env.dev_build_result}".contains("FAILURE")) {
-						error "开发环境部署失败"
+						error "开发容器环境部署失败"
 					}else{
-						echo "开发环境部署任务成功"
+						echo "开发容器环境部署任务成功"
 					}
 
 					emailext (
 						body: """
-						<p>最新的开发环境部署成功（使用${env.Hotfix_Branch_Name}分支部署）</p>
+						<p>最新的开发容器环境部署成功（使用${env.Hotfix_Branch_Name}分支部署）</p>
+						<p>开发容器环境前端登录地址和端口：10.142.246.4:8889</p>
+						<p>开发容器环境后端地址和端口：10.142.246.4:8199</p>
 						<p>开发环境部署触发用户： ${env.Stage_Submitter_2}</p>
 						<p>如后续需要重复部署，用个人账户登录Jenkins Pipeline视图再次触发该步骤</p>
 						<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
 
 						""",
 						to: "${env.Dev_Mail_List}",
-						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-最新的开发环境部署成功",
+						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-最新的开发容器环境部署成功",
 						attachLog: true
 					)
 					false
@@ -292,7 +270,7 @@ def Stage2() {
 				println err
 				emailext (
 					body: """
-					<p>开发环境部署失败（使用${env.Hotfix_Branch_Name}分支部署），可能原因：<p>
+					<p>开发容器环境部署失败（使用${env.Hotfix_Branch_Name}分支部署），可能原因：<p>
 					<p> 1)构建失败</p>
 					<p> 2)服务启动失败</p>
 					<p>定位原因请参照详细日志（查看具体部署日志需要从流水线日志跳转到部署子任务查看具体日志）: </p>
@@ -323,7 +301,7 @@ def Stage3() {
 	if ("${params.Action}" ==~ /1-.*|2-.*|3-.*/) {
 		waitUntil {
 			try {
-				def Hotfix_Branch_Name = readFile '../Web_Hotfix_Branch_Name.txt'
+				def Hotfix_Branch_Name = readFile '../Schedule_Hotfix_Branch_Name.txt'
 				env.Hotfix_Branch_Name = Hotfix_Branch_Name.trim()
 
                 def input_map_1 = input(
@@ -340,45 +318,26 @@ def Stage3() {
 
 				if (!"${env.QA_Completion}".contains("Yes")) {
 
-	                def input_map_2 = input(
+	                env.Stage_Submitter_2 = input(
 					message: '是否开始部署测试环境?（QA有权限执行此步）',
 					ok: "同意进行测试环境部署",
-					parameters: [
-						string(defaultValue: 'QA-54', description: '后端部署节点', name: 'QA_Backend_Env'),
-						string(defaultValue: 'QA-54', description: '前端部署节点', name: 'QA_Frontend_Env'),
-						string(defaultValue: '/usr/bdusr01/qa', description: '后端部署路径', name: 'QA_Backend_Deploy_Path'),
-						string(defaultValue: '/home/html/todp-one-web-pc', description: '前端部署路径', name: 'QA_Frontend_Deploy_Path')
-					],
 					submitter: "${env.QA_User_List}",
 					submitterParameter: 'Stage_Submitter_2'
 					)
 
-					env.QA_Backend_Env = input_map_2["QA_Backend_Env"]
-					env.QA_Frontend_Env = input_map_2["QA_Frontend_Env"]
-					env.Stage_Submitter_2 = input_map_2["Stage_Submitter_2"]
-					env.QA_Backend_Deploy_Path = input_map_2["QA_Backend_Deploy_Path"]
-					env.QA_Frontend_Deploy_Path = input_map_2["QA_Frontend_Deploy_Path"]
-
 					def test_build_step = build (
-						job: 'TODP-Web门户-源码构建部署-V2', 
+						job: "100-todp-schedule-release(build-image-up)", 
 						parameters: [
-						string(name: 'Step1', value: ""),
-						string(name: 'Build_Config', value: "test"), 
-						string(name: 'Step2', value: ""),
-						string(name: 'Web_Backend_Deploy', value: "yes"),
-						string(name: 'Web_Backend_Deploy_Branch', value: "origin/${env.Hotfix_Branch_Name}"),
-						string(name: 'Web_Backend_Deploy_Path', value: "${env.QA_Backend_Deploy_Path}"), 
-						string(name: 'Web_Backend_Deploy_Node', value: "${env.QA_Backend_Env}"),
-						string(name: 'Step3', value: ""),
+						string(name: 'Build_Config', value: "test"),
+						string(name: 'Schedule_Deploy', value: "yes"),
+						string(name: 'Schedule_Deploy_Branch', value: "origin/${env.Hotfix_Branch_Name}"),
 						string(name: 'Web_Frontend_Deploy', value: "yes"),
 						string(name: 'Web_Frontend_Deploy_Branch', value: "origin/${env.Hotfix_Branch_Name}"),
-						string(name: 'Web_Frontend_Deploy_Path', value: "${env.QA_Frontend_Deploy_Path}"), 
-						string(name: 'Web_Frontend_Deploy_Node', value: "${env.QA_Frontend_Env}"),
-						string(name: 'Step4', value: ""),
-						string(name: 'Auth_Backend_Deploy', value: "no"),
-						string(name: 'Auth_Backend_Deploy_Branch', value: "origin/develop"),
-						string(name: 'Auth_Backend_Deploy_Path', value: "不进行构建"), 
-						string(name: 'Auth_Backend_Deploy_Node', value: "不进行构建")
+						string(name: 'Deploy_Type', value: "test"),
+						string(name: 'RancherUp_Node', value: "Docker-10.142.246.4"),
+						string(name: 'Loadbalance_Is', value: "0"),
+						string(name: 'Schedule_Backend_Container_Number', value: "1"),
+						string(name: 'Schedule_Frontend_Container_Number', value: "1")
 						], 
 						quietPeriod: 3,
 						propagate: false
@@ -386,21 +345,21 @@ def Stage3() {
 
 					env.test_build_result = test_build_step.result
 					if ("${env.test_build_result}".contains("FAILURE")) {
-						error "测试环境部署失败"
+						error "测试容器环境部署失败"
 					}else{
-						echo "测试环境部署任务成功"
+						echo "测试容器环境部署任务成功"
 					}
 
 					emailext (
 						body: """
-						<p>最新的测试环境部署成功（使用${env.Hotfix_Branch_Name}分支部署）</p>
+						<p>最新的测试容器环境部署成功（使用${env.Hotfix_Branch_Name}分支部署）</p>
 						<p>测试环境部署触发用户： ${env.Stage_Submitter_2}</p>
 						<p>如需后续重复部署，用个人账户登录Jenkins Pipeline视图再次触发该步骤</p>
 						<p>Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}(pipeline page)</a></p>
 
 						""",
 						to: "${env.QA_Mail_List}",
-						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-最新的测试环境部署成功",
+						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-最新的测试容器环境部署成功",
 						attachLog: true
 					)
 					false
@@ -460,7 +419,7 @@ def Stage3() {
 				println err
 				emailext (
 					body: """
-					<p>测试环境部署失败，可能原因：<p>
+					<p>测试容器环境部署失败，可能原因：<p>
 					<p> 1)构建失败</p>
 					<p> 2)服务启动失败</p>
 					<p>定位原因请参照详细日志（查看具体部署日志需要从流水线日志跳转到部署子任务查看具体日志）: </p>
@@ -487,7 +446,7 @@ def Stage3() {
 
 def Stage4() {
 	if ("${params.Action}" ==~ /1-.*|2-.*|3-.*|4-.*/) {
-		def Hotfix_Branch_Name = readFile '../Web_Hotfix_Branch_Name.txt'
+		def Hotfix_Branch_Name = readFile '../Schedule_Hotfix_Branch_Name.txt'
 		env.Hotfix_Branch_Name = Hotfix_Branch_Name.trim()
 
 		waitUntil {
@@ -835,56 +794,37 @@ def Stage5() {
 		waitUntil {
 			try {
 				//询问测试是否需要执行部署步骤
-                def input_map = input(
+                env.Stage_Submitter = input(
 				message: '是否使用master分支部署用于冒烟测试的环境?（QA有权限执行此步）',
 				ok: "同意进行测试环境部署",
-				parameters: [
-					string(defaultValue: 'QA-54', description: '后端部署节点', name: 'QA_Backend_Env'),
-					string(defaultValue: 'QA-54', description: '前端部署节点', name: 'QA_Frontend_Env'),
-					string(defaultValue: '/usr/bdusr01/qa', description: '后端部署路径', name: 'QA_Backend_Deploy_Path'),
-					string(defaultValue: '/home/html/todp-one-web-pc', description: '前端部署路径', name: 'QA_Frontend_Deploy_Path')
-				],
 				submitter: "${env.QA_User_List}",
 				submitterParameter: 'Stage_Submitter'
 				)
 
-				env.QA_Backend_Env = input_map["QA_Backend_Env"]
-				env.QA_Frontend_Env = input_map["QA_Frontend_Env"]
-				env.Stage_Submitter = input_map["Stage_Submitter"]
-				env.QA_Backend_Deploy_Path = input_map["QA_Backend_Deploy_Path"]
-				env.QA_Frontend_Deploy_Path = input_map["QA_Frontend_Deploy_Path"]
-
 				// 如果执行部署，则调用部署子任务，把需要的参数传入
 				def smoke_build_step = build (
-					job: 'TODP-Web门户-源码构建部署-V2', 
-					parameters: [
-					string(name: 'Step1', value: ""),
-					string(name: 'Build_Config', value: "test"), 
-					string(name: 'Step2', value: ""),
-					string(name: 'Web_Backend_Deploy', value: "yes"),
-					string(name: 'Web_Backend_Deploy_Branch', value: "origin/master"),
-					string(name: 'Web_Backend_Deploy_Path', value: "${env.QA_Backend_Deploy_Path}"), 
-					string(name: 'Web_Backend_Deploy_Node', value: "${env.QA_Backend_Env}"),
-					string(name: 'Step3', value: ""),
-					string(name: 'Web_Frontend_Deploy', value: "yes"),
-					string(name: 'Web_Frontend_Deploy_Branch', value: "origin/master"),
-					string(name: 'Web_Frontend_Deploy_Path', value: "${env.QA_Frontend_Deploy_Path}"), 
-					string(name: 'Web_Frontend_Deploy_Node', value: "${env.QA_Frontend_Env}"),
-					string(name: 'Step4', value: ""),
-					string(name: 'Auth_Backend_Deploy', value: "no"),
-					string(name: 'Auth_Backend_Deploy_Branch', value: "origin/master"),
-					string(name: 'Auth_Backend_Deploy_Path', value: "不进行构建"), 
-					string(name: 'Auth_Backend_Deploy_Node', value: "不进行构建")
-					], 
-					quietPeriod: 3,
-					propagate: false
-				)
+					job: "100-todp-schedule-release(build-image-up)", 
+						parameters: [
+						string(name: 'Build_Config', value: "test"),
+						string(name: 'Schedule_Deploy', value: "yes"),
+						string(name: 'Schedule_Deploy_Branch', value: "origin/master"),
+						string(name: 'Web_Frontend_Deploy', value: "yes"),
+						string(name: 'Web_Frontend_Deploy_Branch', value: "origin/master"),
+						string(name: 'Deploy_Type', value: "test"),
+						string(name: 'RancherUp_Node', value: "Docker-10.142.246.2"),
+						string(name: 'Loadbalance_Is', value: "0"),
+						string(name: 'Schedule_Backend_Container_Number', value: "1"),
+						string(name: 'Schedule_Frontend_Container_Number', value: "1")
+						], 
+						quietPeriod: 3,
+						propagate: false
+					)
 
 				env.smoke_build_result = smoke_build_step.result
 				if ("${env.smoke_build_result}".contains("FAILURE")) {
-					error "冒烟测试环境部署失败"
+					error "冒烟测试容器环境部署失败"
 				}else{
-					echo "冒烟测试环境部署任务成功"
+					echo "冒烟测试容器环境部署任务成功"
 				}
 
 				// 邮件通知其他测试，测试环境刚刚被部署过，并且邮件说明部署人
@@ -955,7 +895,7 @@ def Stage5() {
 				println err
 				emailext (
 					body: """
-					<p>拉取master分支部署冒烟测试环境失败，可能原因：<p>
+					<p>拉取master分支部署冒烟测试容器环境失败，可能原因：<p>
 					<p> 1)构建失败</p>
 					<p> 2)服务启动失败</p>
 					<p>定位原因请参照详细日志（查看具体部署日志需要从流水线日志跳转到部署子任务查看具体日志）: </p>
@@ -976,85 +916,5 @@ def Stage5() {
 	}
 	else {
 		echo "Skip Stage5" 
-	}
-}
-
-def Stage6() {
-	if ("${params.Action}" ==~ /1-.*|2-.*|3-.*|4-.*|5-.*|6-.*/) {
-		waitUntil {
-			try {
-				//询问开发组长是否可以在生产环境拉取源码构建可执行包
-                def input_map = input(
-				message: '是否使用master分支在生产环境编译打包?（开发组长有权限执行此步）',
-				ok: "同意在生产环境编译打包",
-				parameters: [
-					string(defaultValue: '/home/hue/QA', description: '生产环境可执行包的生成位置', name: 'Package_Path')
-				],
-				submitter: "${env.Dev_Leader_User}",
-				submitterParameter: 'Stage_Submitter'
-				)
-
-				env.Stage_Submitter = input_map["Stage_Submitter"]
-				env.Package_Path = input_map["Package_Path"]
-
-
-				def prod_build_step = build (
-					job: 'TODP-门户-生产部署子任务(sub)', 
-					parameters: [
-					string(name: 'Backend_GitLab_URL_HTTP', value: "${env.Backend_GitLab_URL_HTTP}"), 
-					string(name: 'Frontend_GitLab_URL_HTTP', value: "${env.Frontend_GitLab_URL_HTTP}"), 
-					string(name: 'Package_Path', value: "${env.Package_Path}")
-					], 
-					quietPeriod: 3,
-					propagate: false
-				)
-
-				env.prod_build_result = prod_build_step.result
-				if ("${env.prod_build_result}".contains("FAILURE")) {
-					error "生产环境部署失败"
-				}else{
-					echo "生产环境部署任务成功"
-				}
-
-				emailext (
-					body: """
-					<p>前端：拉取master分支生产环境97.11门户前端直接部署成功，部署路径为/usr/lib/todp-one-web-pc</p>
-					<p>后端：在生产环境97.11拉取master分支打包成功，请相关开发负责人去${env.Package_Path}目录下取最新的包进行生产环境包替换和启动</p>
-					<p>生产环境打包触发用户： ${env.Stage_Submitter}</p>
-					<p>整个流水线流程完成，查看具体步骤和细节，可以登录Jenkins Pipeline页面查看</p>
-					<p>Jenkins Pipeline页面： <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}</a></p>
-					""",
-					to: "${env.QA_Mail_List},${env.Dev_Mail_List},${env.PM_Mail_List}",
-					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-在生产环境97.11拉取master分支构建和部署成功",
-					attachLog: true
-				)
-
-				true
-			}
-			catch (err) {
-				println err
-				emailext (
-					body: """
-					<p>在生产环境97.11拉取master分支打包失败，可能原因：<p>
-					<p> 1)git源码拉取失败（查看是否权限和gitlab账号问题导致）</p>
-					<p> 2)Maven构建失败（查看是否是maverepo缺失等原因导致）</p>
-					<p> 3)打包存放目录不存在</p>
-					<p>定位原因请参照详细日志:  <a href='${env.BUILD_URL}console'>${env.JOB_NAME} [${env.BUILD_NUMBER}] (consolelog)</a></p>
-					<p>查明原因后请相关人员重新在Jenkins Pipeline视图继续执行步骤 <a href='${env.JENKINS_URL}blue/organizations/jenkins/${env.JOB_NAME}/detail/${env.JOB_NAME}/${env.BUILD_NUMBER}/pipeline'>${env.JOB_NAME}${env.JOB_NAME} (pipeline)</a> ！！！</p>
-					""",
-					to: "${env.QA_Mail_List},${env.Dev_Mail_List},${env.PM_Mail_List}",
-					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-在生产环境97.11拉取master分支打包失败",
-					attachLog: true
-				)
-
-				input (
-					message: "出错，查明原因后，再次尝试该步骤?"
-				)
-				false
-			}
-		}
-	}
-	else {
-		echo "Skip Stage6" 
 	}
 }

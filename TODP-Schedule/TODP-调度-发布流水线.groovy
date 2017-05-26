@@ -24,10 +24,6 @@ node('Docker-4') {
 		Stage6()
 	}
 
-	stage("Stage7 - 生产环境构建打包") {
-		Stage7()
-	}
-
 }
 
 
