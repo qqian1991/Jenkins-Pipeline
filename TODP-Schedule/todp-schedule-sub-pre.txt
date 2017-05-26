@@ -1,0 +1,4 @@
+String Parameters:
+Backend_GitLab_URL_HTTP: 从上一个任务的初始Paramter传入
+Frontend_GitLab_URL_HTTP: 从上一个任务的初始Paramter传入
+Package_Path: 从Stage的input步骤传入
