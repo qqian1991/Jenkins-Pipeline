@@ -159,7 +159,7 @@ def Stage1() {
 	// 如果起始步骤不是1，则跳过该步骤，此时Feature_Branch_Name需要手动在jenkins的环境变量处设置
 	else {
 		echo "Skip Stage1"
-		sh 'echo "${Feature_Exist}" > ../Schedule_Feature_Branch_Name.txt'
+		sh 'echo "${params.Feature_Exist}" > ../Schedule_Feature_Branch_Name.txt'
 	}
 }
 
@@ -630,7 +630,7 @@ def Stage3() {
 	}
 	else {
 		echo "Skip Stage3"
-		sh 'echo "${Release_Exist}" > ../Schedule_Release_Branch_Name.txt'
+		sh 'echo "${params.Release_Exist}" > ../Schedule_Release_Branch_Name.txt'
 	}
 }
 
