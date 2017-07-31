@@ -60,9 +60,10 @@ node("${env.Build_Node}") {
 	          	// 这里的shell脚本部分主要是把Jenkins节点构建的可执行文件包传到远程部署机器上，然后测试下是否可以远程登录过去，并且查看文件是否传输成功
 				sh '''
 				scp ${Maven_Package_Path} ${Remote_Server1_Username}@${Remote_Server1_IP}:${Remote_Server1_CopyToPath}
-			    ssh -t -t -o StrictHostKeyChecking=no ${Remote_Server1_Username}@${Remote_Server1_IP} \
+			    ssh -t -t -o StrictHostKeyChecking=no ${Remote_Server1_Username}@${Remote_Server1_IP} """
 			    cd ${Remote_Server1_CopyToPath}
 			    ls -al
+			    """
 				'''
 			}
 		} catch (err) {
@@ -109,9 +110,10 @@ node("${env.Build_Node}") {
 					// 这里的sh部分的shell脚本是部署的实际内容，这里首先登陆到远端机器
 					// 然后可以执行具体的指令，或者调用远端机器上的部署脚本（注意设定的远端用户的权限）
 					sh '''
-				    ssh -t -t -o StrictHostKeyChecking=no ${Remote_Server1_Username}@${Remote_Server1_IP} \
+				    ssh -t -t -o StrictHostKeyChecking=no ${Remote_Server1_Username}@${Remote_Server1_IP} """
 				    cd ${Remote_Server1_CopyToPath} 
 				    ls -al 
+				    """
 					'''
 				}
 
