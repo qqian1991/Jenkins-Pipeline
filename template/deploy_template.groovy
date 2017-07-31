@@ -44,6 +44,9 @@ node("${env.Build_Node}") {
 				subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-Maven打包构建失败",
 				attachLog: true
 			)
+
+			// 中止该任务并输出错误信息
+			error "Maven构建打包失败"
 		}	
 	}
 
@@ -77,6 +80,9 @@ node("${env.Build_Node}") {
 				subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-传输可执行文件到远端机器失败",
 				attachLog: true
 			)
+
+			// 中止该任务并输出错误信息
+			error "拷贝可执行文件到远端部署机器失败"
 		}
     
       	// 打包和传输步骤都成功，则发送邮件通知构建打包和传输成功，并且把文件传输位置信息告知
@@ -134,6 +140,9 @@ node("${env.Build_Node}") {
 					subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-部署失败",
 					attachLog: true
 				)
+
+				// 中止该任务并输出错误信息
+				error "在远端机器进行部署失败"
 			}	
 		}
 	} else {
