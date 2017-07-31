@@ -1,0 +1,25 @@
+# Params:
+* Build_Config(Choice Parameter):
+test
+dev
+prod
+
+* GitLab_URL(String Parameter):
+http://10.142.78.33:8080/DataPlatform/todp-auth.git
+
+* Deploy_Branch(String Parameter):
+develop
+
+* Is_Deploy(Choice Parameter):
+no
+yes
+
+# Environment Inject:
+Build_Node = Docker-7
+Mail_List = qianqi@chinatelecom.cn
+Remote_Server1_Username = op
+Remote_Server1_IP = 10.142.246.7
+Remote_Server1_Credential = Docker-Server-10.142.246.7
+Remote_Server1_CopyToPath = /tmp
+Pom_Path = pom.xml
+Maven_Package_Path = todp-auth-web/target/todp-auth-web-v1.tar.gz
