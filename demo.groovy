@@ -17,7 +17,7 @@ node('Docker-4') {
 					)
 
 					// 是否进行拉取feature分支步骤，并且输入feature分支名称
-	                def input_map = input(
+          def input_map = input(
 					message: '是否为该项目拉取feature分支?（仅开发组长有权限执行此步）',
 					ok: "同意拉取feature分支",
 					parameters: [
@@ -50,13 +50,13 @@ node('Docker-4') {
 						echo "branch_result: ${branch_result}"
 						if [[ $branch_result =~ $Feature_Branch_Name ]]
 						then
-						  echo "该feature分支：${Feature_Branch_Name}已经存在"
-						  exit 1
+							echo "该feature分支：${Feature_Branch_Name}已经存在"
+							exit 1
 						else
-						  git checkout -b ${Feature_Branch_Name} origin/develop
-						  git push origin ${Feature_Branch_Name}
-						  git branch --set-upstream-to=origin/${Feature_Branch_Name} ${Feature_Branch_Name}
-						  git branch -a
+							git checkout -b ${Feature_Branch_Name} origin/develop
+							git push origin ${Feature_Branch_Name}
+							git branch --set-upstream-to=origin/${Feature_Branch_Name} ${Feature_Branch_Name}
+							git branch -a
 						fi
 					'''
 
@@ -119,7 +119,7 @@ node('Docker-4') {
 					env.Feature_Branch_Name = Feature_Branch_Name.trim()
 
 					//询问开发开发是否完成
-	                def input_map_1 = input(
+					def input_map_1 = input(
 					message: '开发及自测是否完成?（No继续开发部署，Yes确认完成）（相关开发有权限执行此步）',
 					ok: "下一步",
 					submitter: "${env.Dev_User_List}",
@@ -135,7 +135,7 @@ node('Docker-4') {
 					if (!"${env.Dev_Completion}".contains("Yes")) {
 
 						//询问开发是否需要执行部署步骤
-		                def input_map_2 = input(
+						def input_map_2 = input(
 						message: '是否开始部署开发环境?（相关开发有权限执行此步）',
 						ok: "同意进行开发环境部署",
 						parameters: [
@@ -208,7 +208,7 @@ node('Docker-4') {
 						)
 
 						//组长确认开发完成步骤
-		                env.Dev_Confirm = input(
+						env.Dev_Confirm = input(
 						message: '开发组长确认开发阶段是否完成?（仅开发组长有权限执行此步）',
 						ok: "下一阶段",
 						submitter: "${env.Dev_Leader_User}",
@@ -408,7 +408,7 @@ node('Docker-4') {
 
 			waitUntil {
 				try {
-	                def input_map = input(
+					def input_map = input(
 					message: '是否为该项目拉取release分支?（仅开发组长有权限执行此步）',
 					ok: "同意拉取release分支",
 					parameters: [
@@ -439,7 +439,7 @@ node('Docker-4') {
 					if [[ $branch_result =~ $Release_Branch_Name ]]
 					then
 						echo "该release分支：${Release_Branch_Name}已经存在"
-					    exit 1
+						exit 1
 					else
 						git checkout -b ${Release_Branch_Name} origin/develop
 						git push origin ${Release_Branch_Name}
@@ -502,7 +502,7 @@ node('Docker-4') {
 					env.Release_Branch_Name = Release_Branch_Name.trim()
 
 					//询问测试验收测试是否完成
-	                def input_map_1 = input(
+					def input_map_1 = input(
 					message: '验收测试是否完成?（No继续部署测试，Yes确认完成）（QA有权限执行此步）',
 					ok: "下一步",
 					submitter: "${env.QA_User_List}",
@@ -518,7 +518,7 @@ node('Docker-4') {
 					if (!"${env.QA_Completion}".contains("Yes")) {
 
 						//询问测试是否需要执行部署步骤
-		                def input_map_2 = input(
+						def input_map_2 = input(
 						message: '是否开始部署测试环境?（QA有权限执行此步）',
 						ok: "同意进行测试环境部署",
 						parameters: [
@@ -586,7 +586,7 @@ node('Docker-4') {
 							attachLog: true
 						)
 
-		                env.QA_Confirm = input(
+						env.QA_Confirm = input(
 						message: '组长确认验收测试是否完成?（仅测试组长有权限执行此步）',
 						ok: "下一阶段",
 						submitter: "${env.QA_Leader_User}",
@@ -786,7 +786,7 @@ node('Docker-4') {
 			waitUntil {
 				try {
 
-	                def input_map = input(
+					def input_map = input(
 					message: "${env.Release_Branch_Name}已合并到master分支，请打上大版本tag?（仅开发组长有权限执行此步）",
 					ok: "同意给master分支打tag",
 					parameters: [
@@ -927,7 +927,7 @@ node('Docker-4') {
 			waitUntil {
 				try {
 					//询问测试是否需要执行部署步骤
-	                def input_map = input(
+					def input_map = input(
 					message: '是否使用master分支部署用于冒烟测试的环境?（QA有权限执行此步）',
 					ok: "同意进行测试环境部署",
 					parameters: [
@@ -979,14 +979,14 @@ node('Docker-4') {
 						subject: "${env.JOB_NAME}-${env.BUILD_NUMBER}-拉取master分支部署测试环境用于冒烟测试",
 						attachLog: true
 					)
-
-	                input(
+					
+					input(
 					message: '冒烟测试是否完成?（QA有权限执行此步）',
 					ok: "完成",
 					submitter: "${env.QA_User_List}"
 					)
 
-	                env.QA_Confirm = input(
+					env.QA_Confirm = input(
 					message: '测试组长确认冒烟测试是否完成?（仅测试组长有权限执行此步）',
 					ok: "完成，可以用于上线",
 					submitter: "${env.QA_Leader_User}",

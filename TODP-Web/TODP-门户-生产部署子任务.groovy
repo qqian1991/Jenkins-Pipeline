@@ -11,7 +11,7 @@ node('Prod-97.11') {
 		sh '''
 		#!/bin/bash
 		set -ex
-		rm -rf ~/.m2/repository/com/chinatelecom/*
+		rm -rf ~/.m2/repository/com/test/*
 		'''
 
 		withMaven(jdk: 'JDK1.8', maven: 'MVN3') {

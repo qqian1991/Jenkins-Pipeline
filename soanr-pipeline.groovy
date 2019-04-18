@@ -2,20 +2,20 @@ node('Docker-3') {
 
   stage('SCM') {
     checkout([
-    	$class: 'GitSCM', 
-    	branches: [[name: "origin/${params.BRANCH_TO_BUILD}"]], 		
-    	userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "http://10.142.78.33:8080/DataPlatform/todp-auth.git"]],
-    	extensions: [[$class: 'WipeWorkspace']]
+      $class: 'GitSCM', 
+      branches: [[name: "origin/${params.BRANCH_TO_BUILD}"]], 		
+      userRemoteConfigs: [[credentialsId: 'Gitlab-jenkins-account', url: "http://example/test.git"]],
+      extensions: [[$class: 'WipeWorkspace']]
     ])	
 
     sh '''
     #!/bin/bash
     set -ex
 
-    ct_maven_path="~/mavenrepo/com/chinatelecom"
+    ct_maven_path="~/mavenrepo/com/test"
 
     if [ -f "${ct_maven_pat}" ]; then
-     rm -rf "${ct_maven_pat}"
+      rm -rf "${ct_maven_pat}"
     fi
     '''
   }
@@ -48,9 +48,9 @@ node('Docker-3') {
       body: emailBody, 
       attachLog: true, 
       mimeType: 'text/html',
-      replyTo: 'qianqi@chinatelecom.cn', 
+      replyTo: 'qianqi@test.cn', 
       subject: "${env.JOB_NAME} (${params.BRANCH_TO_BUILD}) - Build #${env.BUILD_NUMBER} - ${currentBuild.result}!", 
-      to: 'qianqi@chinatelecom.cn'
+      to: 'qianqi@test.cn'
     )
   }
 }

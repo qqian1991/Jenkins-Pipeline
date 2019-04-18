@@ -85,13 +85,13 @@ def Stage1() {
 					echo "branch_result: ${branch_result}"
 					if [[ $branch_result =~ $Feature_Branch_Name ]]
 					then
-					  echo "该feature分支：${Feature_Branch_Name}已经存在"
-					  exit 1
+						echo "该feature分支：${Feature_Branch_Name}已经存在"
+						exit 1
 					else
-					  git checkout -b ${Feature_Branch_Name} origin/develop
-					  git push origin ${Feature_Branch_Name}
-					  git branch --set-upstream-to=origin/${Feature_Branch_Name} ${Feature_Branch_Name}
-					  git branch -a
+						git checkout -b ${Feature_Branch_Name} origin/develop
+						git push origin ${Feature_Branch_Name}
+						git branch --set-upstream-to=origin/${Feature_Branch_Name} ${Feature_Branch_Name}
+						git branch -a
 					fi
 				'''
 
@@ -169,7 +169,7 @@ def Stage2() {
 				if (!"${env.Dev_Completion}".contains("Yes")) {
 
 					//询问开发是否需要执行部署步骤
-	                def input_map_2 = input(
+					def input_map_2 = input(
 					message: '是否开始部署开发环境?（相关开发有权限执行此步）',
 					ok: "同意进行开发环境部署",
 					parameters: [
@@ -234,7 +234,7 @@ def Stage2() {
 					)
 
 					//组长确认开发完成步骤
-	                env.Dev_Confirm = input(
+					env.Dev_Confirm = input(
 					message: '开发组长确认开发阶段是否完成?（仅开发组长有权限执行此步）',
 					ok: "下一阶段",
 					submitter: "${env.Dev_Leader_User}",
@@ -467,7 +467,7 @@ def Stage3() {
 				if [[ $branch_result =~ $Release_Branch_Name ]]
 				then
 					echo "该release分支：${Release_Branch_Name}已经存在"
-				    exit 1
+					exit 1
 				else
 					git checkout -b ${Release_Branch_Name} origin/develop
 					git push origin ${Release_Branch_Name}
@@ -546,7 +546,7 @@ def Stage4() {
 				if (!"${env.QA_Completion}".contains("Yes")) {
 
 					//询问测试是否需要执行部署步骤
-	                def input_map_2 = input(
+					def input_map_2 = input(
 					message: '是否开始部署测试环境?（QA有权限执行此步）',
 					ok: "同意进行测试环境部署",
 					parameters: [
@@ -606,7 +606,7 @@ def Stage4() {
 						attachLog: true
 					)
 
-	                env.QA_Confirm = input(
+					env.QA_Confirm = input(
 					message: '组长确认验收测试是否完成?（仅测试组长有权限执行此步）',
 					ok: "下一阶段",
 					submitter: "${env.QA_Leader_User}",
